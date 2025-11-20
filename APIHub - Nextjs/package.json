@@ -1,22 +1,19 @@
 {
   "name": "apihub-nextjs",
   "version": "1.0.0",
-  "description": "Plataforma moderna de catálogo de APIs",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "lint": "next lint"
   },
   "dependencies": {
-    "@supabase/auth-helpers-nextjs": "^0.8.5",
-    "@supabase/supabase-js": "^2.38.1",
-    "framer-motion": "^10.18.0",
-    "lucide-react": "^0.292.0",
     "next": "14.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "@supabase/supabase-js": "^2.38.1",
+    "framer-motion": "^10.18.0",
+    "lucide-react": "^0.292.0",
     "sharp": "^0.32.6"
   },
   "devDependencies": {
@@ -29,14 +26,5 @@
     "postcss": "^8.4.31",
     "tailwindcss": "^3.3.3",
     "typescript": "^5.2.2"
-  },
-  "keywords": [
-    "api",
-    "catalog",
-    "developer-tools",
-    "nextjs",
-    "supabase"
-  ],
-  "author": "APIHub Team",
-  "license": "MIT"
+  }
 }
