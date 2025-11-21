@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 
 export default function Home() {
+  console.log("Test var:", process.env.NEXT_PUBLIC_TEST)
   const [stats, setStats] = useState({ apis: 0, categories: 0, users: 0 })
 
   useEffect(() => {
@@ -280,4 +281,5 @@ export default function Home() {
       </section>
     </div>
   )
+
 }
