@@ -18,7 +18,7 @@ export default function Home() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setStats({ apis: 127, categories: 15, users: 2843 })
+      setStats({ apis: 50, categories: 15, users: 1 })
     }, 1000)
     return () => clearTimeout(timer)
   }, [])
@@ -282,3 +282,4 @@ export default function Home() {
     </div>
   )
 }
+
