@@ -17,7 +17,7 @@ export function Header() {
           <Link href="/" className="flex items-center space-x-3 group">
             <div className="w-16 h-16 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
               <Image 
-                src="/logo.png" 
+                src="/Logo.png" 
                 alt="APIHub Logo"
                 width={64}
                 height={64}
@@ -89,4 +89,5 @@ export function Header() {
       </div>
     </header>
   )
+
 }
