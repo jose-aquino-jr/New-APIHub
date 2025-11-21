@@ -26,14 +26,14 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Hero Section - Texto Centralizado */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden px-4">
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden px-4 pt-20 md:pt-24">
         {/* Background */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5" />
         <div className="absolute top-10 left-10 w-72 h-72 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-float" />
         <div className="absolute top-10 right-10 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-float" style={{animationDelay: '2s'}} />
         <div className="absolute bottom-10 left-1/2 w-72 h-72 bg-pink-200 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-float" style={{animationDelay: '4s'}} />
 
-        <div className="relative z-10 text-center max-w-4xl mx-auto"> {/* ✅ max-w-4xl para centralizar melhor */}
+        <div className="relative z-10 text-center max-w-4xl mx-auto">
           {/* Badge */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -62,7 +62,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-lg md:text-xl text-gray-600 mb-8 max-w-2xl mx-auto leading-relaxed text-center" // ✅ text-center
+            className="text-lg md:text-xl text-gray-600 mb-8 max-w-2xl mx-auto leading-relaxed text-center"
           >
             Descubra e integre APIs gratuitas em uma plataforma 
             <span className="font-semibold text-gray-800"> feita para desenvolvedores de verdade</span>
@@ -112,8 +112,9 @@ export default function Home() {
           </motion.div>
         </div>
       </section>
+
       {/* Features Section */}
-      <section className="py-16 px-4 bg-white">
+      <section className="py-16 px-4 bg-white mt-16">
         <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -176,7 +177,7 @@ export default function Home() {
       </section>
 
       {/* APIs em Destaque */}
-      <section className="py-16 px-4 bg-gray-50">
+      <section className="py-16 px-4 bg-gray-50 mt-16">
         <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -253,7 +254,7 @@ export default function Home() {
       </section>
 
       {/* CTA Final */}
-      <section className="py-16 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+      <section className="py-16 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white mt-16">
         <div className="max-w-2xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
