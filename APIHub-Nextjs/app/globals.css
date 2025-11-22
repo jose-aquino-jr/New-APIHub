@@ -17,7 +17,6 @@
   }
 }
 
-/* 🎯 ANIMAÇÕES LEVES */
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -42,7 +41,7 @@
   animation: float 6s ease-in-out infinite;
 }
 
-/* 🎯 COMPONENTES OTIMIZADOS */
+
 .btn-primary {
   @apply bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold px-6 py-3 rounded-xl transition-all duration-200 hover:shadow-lg hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
 }
@@ -59,35 +58,30 @@
   @apply bg-white rounded-2xl p-6 shadow-sm border border-gray-200 transition-all duration-200 hover:shadow-md hover:border-blue-200;
 }
 
-/* 🎯 INPUTS CORRIGIDOS - ESSA É A PARTE IMPORTANTE */
 .input {
   @apply w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 bg-white;
 }
 
-/* Input com ícone à esquerda */
 .input-with-icon {
-  @apply pl-10 pr-4; /* ✅ ESPAÇO PARA O ÍCONE */
+  @apply pl-10 pr-4; 
 }
 
-/* Input com ícone à direita */
 .input-with-icon-right {
   @apply pr-10 pl-4;
 }
 
-/* Container do input com ícone */
 .input-icon-container {
   @apply relative w-full;
 }
 
 .input-icon {
-  @apply absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none; /* ✅ pointer-events-none para não interferir */
+  @apply absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none;
 }
 
 .input-icon-right {
   @apply absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5;
 }
 
-/* 🎯 GRADIENTES PERSONALIZADOS */
 .text-gradient {
   background: linear-gradient(135deg, #2563eb 0%, #7c3aed 50%, #ea580c 100%);
   -webkit-background-clip: text;
@@ -103,7 +97,6 @@
   background: linear-gradient(135deg, #ea580c 0%, #d97706 100%);
 }
 
-/* 📱 UTILITIES LEVES */
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -118,7 +111,6 @@
   overflow: hidden;
 }
 
-/* 🎯 BADGE STYLES */
 .badge {
   @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium;
 }
@@ -138,8 +130,63 @@
 .badge-green {
   @apply bg-green-100 text-green-600;
 }
+/* 🎯 MELHORIAS PARA OS COMPONENTES */
 
-/* 🎯 LAYOUT UTILITIES */
+/* Badge com efeito glow */
+.badge-glow {
+  @apply shadow-sm hover:shadow-md transition-shadow duration-200;
+}
+
+.select {
+  @apply w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 bg-white cursor-pointer;
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.5s ease-out;
+}
+
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .container-custom {
+    @apply px-4;
+  }
+  
+  .card {
+    @apply p-4;
+  }
+}
+
+/* Scroll suave para filtros mobile */
+.mobile-filters-enter {
+  max-height: 0;
+  opacity: 0;
+}
+
+.mobile-filters-enter-active {
+  max-height: 300px;
+  opacity: 1;
+  transition: all 0.3s ease-in-out;
+}
+
+.mobile-filters-exit {
+  max-height: 300px;
+  opacity: 1;
+}
+
+.mobile-filters-exit-active {
+  max-height: 0;
+  opacity: 0;
+  transition: all 0.3s ease-in-out;
+}
 .container-custom {
   @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
 }
@@ -148,7 +195,6 @@
   @apply py-16 px-4;
 }
 
-/* 🎯 SCROLLBAR */
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -166,11 +212,11 @@
   background: linear-gradient(to bottom, #2563eb, #7c3aed);
 }
 
-/* Performance */
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+
 }
