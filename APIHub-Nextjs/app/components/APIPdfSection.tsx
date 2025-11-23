@@ -1,4 +1,10 @@
-export function APIPdfSection({ api }) {
+import { API } from '@/lib/supabase' 
+
+interface APIPdfSectionProps {
+  api: API
+}
+
+export function APIPdfSection({ api }: APIPdfSectionProps) {
   if (!api.pdf_url) {
     return null
   }
