@@ -24,6 +24,7 @@ export interface API {
   parameters: string
   response_format: string
   usage_example: string
+  pdf_url?: string
 }
 
 export interface UserFavorite {
