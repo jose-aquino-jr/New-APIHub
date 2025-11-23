@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { notFound } from 'next/navigation'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { Star, Shield, Globe, Zap, Copy, Check } from 'lucide-react'
+import { Star, Shield, Globe, Zap, Copy, Check, FileText, Download } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { getCategoryFromTags, parseParameters, getApiBySlug, generateSlug } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
@@ -135,6 +135,31 @@ export default function APIDetail({ params }: PageProps) {
                   {api.authentication_type}
                 </span>
               </div>
+              
+              {api.pdf_url && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.3 }}
+                  className="mt-4"
+                >
+                  <a
+                    href={api.pdf_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-4 rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  >
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-5 h-5" />
+                      <span>Documentação Completa</span>
+                    </div>
+                    <Download className="w-4 h-4" />
+                  </a>
+                  <p className="text-sm text-gray-500 mt-2">
+                    📄 Guia detalhado de implementação e exemplos
+                  </p>
+                </motion.div>
+              )}
             </div>
           </div>
         </motion.div>
@@ -227,6 +252,35 @@ export default function APIDetail({ params }: PageProps) {
 
           {/* Sidebar */}
           <div className="space-y-6">
+            {/* Card de Acesso Rápido ao PDF - Adicionado na sidebar também */}
+            {api.pdf_url && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="card bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200"
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <FileText className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <h3 className="font-semibold text-gray-800">Documentação</h3>
+                </div>
+                <p className="text-sm text-gray-600 mb-4">
+                  Baixe o guia completo com exemplos práticos e instruções detalhadas.
+                </p>
+                <a
+                  href={api.pdf_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  Abrir PDF
+                </a>
+              </motion.div>
+            )}
+
             {/* APIs Relacionadas */}
             {relatedApis.length > 0 && (
               <motion.div
