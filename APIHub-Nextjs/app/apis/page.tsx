@@ -5,13 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { 
   Search, 
-  Filter, 
   Star, 
   Shield, 
   Globe, 
   Zap, 
   X, 
-  ChevronDown, 
   Sparkles,
   Cloud,
   Database,
@@ -105,8 +103,6 @@ export default function APICatalog() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [categories, setCategories] = useState<string[]>([])
-  const [showMobileFilters, setShowMobileFilters] = useState(false)
-  const [searchType, setSearchType] = useState<'all' | 'name' | 'description' | 'tags'>('all')
   const { user, favorites, toggleFavorite } = useAuth()
 
   useEffect(() => {
@@ -115,7 +111,7 @@ export default function APICatalog() {
 
   useEffect(() => {
     filterAPIs()
-  }, [searchTerm, selectedCategories, apis, searchType])
+  }, [searchTerm, selectedCategories, apis])
 
   const loadAPIs = async () => {
     try {
@@ -145,25 +141,12 @@ export default function APICatalog() {
     let filtered = apis
 
     if (searchTerm) {
-      filtered = filtered.filter(api => {
-        const searchLower = searchTerm.toLowerCase()
-        
-        switch (searchType) {
-          case 'name':
-            return api.name.toLowerCase().includes(searchLower)
-          case 'description':
-            return api.description.toLowerCase().includes(searchLower)
-          case 'tags':
-            return api.tags.toLowerCase().includes(searchLower)
-          case 'all':
-          default:
-            return (
-              api.name.toLowerCase().includes(searchLower) ||
-              api.description.toLowerCase().includes(searchLower) ||
-              api.tags.toLowerCase().includes(searchLower)
-            )
-        }
-      })
+      const searchLower = searchTerm.toLowerCase()
+      filtered = filtered.filter(api => 
+        api.name.toLowerCase().includes(searchLower) ||
+        api.description.toLowerCase().includes(searchLower) ||
+        api.tags.toLowerCase().includes(searchLower)
+      )
     }
 
     if (selectedCategories.length > 0 && !selectedCategories.includes('all')) {
@@ -197,7 +180,6 @@ export default function APICatalog() {
   const clearAllFilters = () => {
     setSearchTerm('')
     setSelectedCategories([])
-    setSearchType('all')
   }
 
   const hasActiveFilters = searchTerm !== '' || selectedCategories.length > 0
@@ -231,19 +213,95 @@ export default function APICatalog() {
           </p>
         </motion.div>
 
-        {/* Barra de Pesquisa Dinâmica */}
-        <DynamicSearch
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          searchType={searchType}
-          setSearchType={setSearchType}
-          selectedCategories={selectedCategories}
-          onRemoveCategory={removeCategory}
-          onClearAll={clearAllFilters}
-          hasActiveFilters={hasActiveFilters}
-        />
+        {/* Barra de Pesquisa Simplificada */}
+        <div className="mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="card bg-white/80 backdrop-blur-sm border border-gray-200/50 shadow-lg"
+          >
+            <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
+              {/* Campo de Pesquisa com Sugestões */}
+              <div className="flex-1 w-full relative">
+                <div className="input-icon-container">
+                  <Search className="input-icon text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Buscar APIs por nome, descrição ou tags..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="input input-with-icon pr-12 bg-white/50 backdrop-blur-sm border-gray-200/50 focus:border-blue-300 focus:bg-white text-lg"
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 rounded-full transition-colors"
+                    >
+                      <X className="w-4 h-4 text-gray-400" />
+                    </button>
+                  )}
+                </div>
+              </div>
 
-        {/* Category Grid */}
+              {/* Botão Limpar Tudo - só aparece quando há filtros */}
+              {hasActiveFilters && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  onClick={clearAllFilters}
+                  className="px-6 py-3 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-xl font-medium hover:from-red-600 hover:to-pink-600 transition-all shadow-lg whitespace-nowrap"
+                >
+                  Limpar Filtros
+                </motion.button>
+              )}
+            </div>
+
+            {/* Informações Rápidas de Resultados */}
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200/50">
+              <div className="text-sm text-gray-600">
+                {hasActiveFilters ? (
+                  <span>
+                    Mostrando <strong>{filteredApis.length}</strong> de <strong>{apis.length}</strong> APIs
+                  </span>
+                ) : (
+                  <span>
+                    <strong>{apis.length}</strong> APIs disponíveis
+                  </span>
+                )}
+              </div>
+              
+              {/* Filtros Ativos */}
+              {hasActiveFilters && (
+                <div className="flex items-center gap-2 flex-wrap justify-end">
+                  {searchTerm && (
+                    <div className="flex items-center gap-1 bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm">
+                      <span>Busca: "{searchTerm}"</span>
+                      <button
+                        onClick={() => setSearchTerm('')}
+                        className="hover:text-blue-900 transition-colors ml-1"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+                  {selectedCategories.map(category => (
+                    <div key={category} className="flex items-center gap-1 bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm">
+                      <span>{category}</span>
+                      <button
+                        onClick={() => removeCategory(category)}
+                        className="hover:text-purple-900 transition-colors ml-1"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Grade de Categorias */}
         <CategoryGrid
           categories={categories.filter(cat => cat !== 'all')}
           selectedCategories={selectedCategories}
@@ -251,13 +309,26 @@ export default function APICatalog() {
         />
 
         {/* Results Info */}
-        <ResultsInfo 
-          count={filteredApis.length}
-          searchTerm={searchTerm}
-          selectedCategories={selectedCategories}
-          onClearAll={clearAllFilters}
-          hasActiveFilters={hasActiveFilters}
-        />
+        {hasActiveFilters && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 p-4 bg-white/50 rounded-xl border border-gray-200/50"
+          >
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="text-sm text-gray-600 font-medium">
+                {filteredApis.length} {filteredApis.length === 1 ? 'resultado encontrado' : 'resultados encontrados'}
+              </span>
+            </div>
+
+            <button
+              onClick={clearAllFilters}
+              className="text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors hover:bg-blue-50 px-3 py-1.5 rounded-lg self-start sm:self-auto"
+            >
+              Limpar todos os filtros
+            </button>
+          </motion.div>
+        )}
 
         {/* API Grid */}
         <APIGrid 
@@ -271,149 +342,6 @@ export default function APICatalog() {
         {filteredApis.length === 0 && <EmptyState onClearFilters={clearAllFilters} />}
       </div>
     </div>
-  )
-}
-
-// Novo Componente: Barra de Pesquisa Dinâmica
-interface DynamicSearchProps {
-  searchTerm: string
-  setSearchTerm: (term: string) => void
-  searchType: 'all' | 'name' | 'description' | 'tags'
-  setSearchType: (type: 'all' | 'name' | 'description' | 'tags') => void
-  selectedCategories: string[]
-  onRemoveCategory: (category: string) => void
-  onClearAll: () => void
-  hasActiveFilters: boolean
-}
-
-function DynamicSearch({
-  searchTerm,
-  setSearchTerm,
-  searchType,
-  setSearchType,
-  selectedCategories,
-  onRemoveCategory,
-  onClearAll,
-  hasActiveFilters
-}: DynamicSearchProps) {
-  const [isExpanded, setIsExpanded] = useState(false)
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.2 }}
-      className="card mb-6 bg-white/80 backdrop-blur-sm border border-gray-200/50 shadow-lg"
-    >
-      <div className="flex flex-col gap-4">
-        {/* Linha Principal */}
-        <div className="flex flex-col lg:flex-row gap-4 items-center">
-          {/* Campo de Pesquisa */}
-          <div className="input-icon-container flex-1 w-full relative">
-            <Search className="input-icon text-gray-400" />
-            <input
-              type="text"
-              placeholder="Buscar APIs... (nome, descrição, tags)"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onFocus={() => setIsExpanded(true)}
-              className="input input-with-icon pr-12 bg-white/50 backdrop-blur-sm border-gray-200/50 focus:border-blue-300 focus:bg-white text-lg"
-            />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm('')}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                <X className="w-4 h-4 text-gray-400" />
-              </button>
-            )}
-          </div>
-
-          {/* Botão Expandir Filtros */}
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl hover:from-blue-600 hover:to-purple-600 transition-all shadow-lg"
-          >
-            <Filter className="w-4 h-4" />
-            <span className="font-medium">Filtros</span>
-            {hasActiveFilters && (
-              <span className="bg-white text-blue-600 rounded-full w-5 h-5 text-xs flex items-center justify-center font-bold">
-                {selectedCategories.length + (searchTerm ? 1 : 0)}
-              </span>
-            )}
-          </button>
-        </div>
-
-        {/* Filtros Expandidos */}
-        <AnimatePresence>
-          {isExpanded && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="space-y-4 overflow-hidden"
-            >
-              {/* Tipo de Busca */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {[
-                  { value: 'all', label: '🔍 Tudo', icon: Search },
-                  { value: 'name', label: '📛 Nome', icon: Users },
-                  { value: 'description', label: '📝 Descrição', icon: Book },
-                  { value: 'tags', label: '🏷️ Tags', icon: Tag }
-                ].map(({ value, label, icon: Icon }) => (
-                  <button
-                    key={value}
-                    onClick={() => setSearchType(value as any)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                      searchType === value
-                        ? 'bg-blue-500 text-white shadow-md'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Filtros Ativos */}
-              {hasActiveFilters && (
-                <div className="flex flex-wrap gap-2">
-                  {searchTerm && (
-                    <div className="flex items-center gap-2 bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm">
-                      <span>Busca: "{searchTerm}"</span>
-                      <button
-                        onClick={() => setSearchTerm('')}
-                        className="hover:text-blue-900 transition-colors"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  )}
-                  {selectedCategories.map(category => (
-                    <div key={category} className="flex items-center gap-2 bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm">
-                      <span>{category}</span>
-                      <button
-                        onClick={() => onRemoveCategory(category)}
-                        className="hover:text-purple-900 transition-colors"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                  <button
-                    onClick={onClearAll}
-                    className="text-gray-500 hover:text-gray-700 text-sm font-medium px-3 py-1 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    Limpar Tudo
-                  </button>
-                </div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </motion.div>
   )
 }
 
@@ -491,7 +419,7 @@ function CategoryGrid({ categories, selectedCategories, onCategorySelect }: Cate
   )
 }
 
-// Componente de Loading (mantido similar)
+// Componente de Loading
 function LoadingSkeleton() {
   return (
     <div className="min-h-screen pt-20 bg-gradient-to-br from-gray-50 to-blue-50/30">
@@ -542,67 +470,7 @@ function LoadingSkeleton() {
   )
 }
 
-// ResultsInfo atualizado
-interface ResultsInfoProps {
-  count: number
-  searchTerm: string
-  selectedCategories: string[]
-  onClearAll: () => void
-  hasActiveFilters: boolean
-}
-
-function ResultsInfo({ count, searchTerm, selectedCategories, onClearAll, hasActiveFilters }: ResultsInfoProps) {
-  if (!hasActiveFilters) return null
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 p-4 bg-white/50 rounded-xl border border-gray-200/50"
-    >
-      <div className="flex items-center gap-3 flex-wrap">
-        <span className="text-sm text-gray-600 font-medium">
-          {count} {count === 1 ? 'resultado encontrado' : 'resultados encontrados'}
-        </span>
-        
-        <div className="flex items-center gap-2 flex-wrap">
-          {searchTerm && (
-            <span className="badge badge-blue flex items-center gap-2 text-xs px-3 py-1.5">
-              🔍 "{searchTerm}"
-              <button 
-                onClick={() => {/* Implementar limpar busca específica */}} 
-                className="hover:text-blue-800 transition-colors"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </span>
-          )}
-          
-          {selectedCategories.map(category => (
-            <span key={category} className="badge badge-purple flex items-center gap-2 text-xs px-3 py-1.5">
-              {category}
-              <button 
-                onClick={() => {/* Implementar limpar categoria específica */}} 
-                className="hover:text-purple-800 transition-colors"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </span>
-          ))}
-        </div>
-      </div>
-
-      <button
-        onClick={onClearAll}
-        className="text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors hover:bg-blue-50 px-3 py-1.5 rounded-lg self-start sm:self-auto"
-      >
-        Limpar todos os filtros
-      </button>
-    </motion.div>
-  )
-}
-
-// APIGrid e APICard (mantidos similares, mas vou incluir para completar)
+// APIGrid e APICard
 interface APIGridProps {
   apis: API[]
   favorites: string[]
@@ -764,9 +632,4 @@ function EmptyState({ onClearFilters }: { onClearFilters: () => void }) {
       </button>
     </motion.div>
   )
-}
-
-// Componente Tag para completar
-function Tag(props: any) {
-  return <span {...props}>🏷️</span>
 }
