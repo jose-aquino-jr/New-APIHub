@@ -1,281 +1,204 @@
+// components/Header.tsx
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
-import { supabase, User } from '@/lib/supabase'
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import { useAuth } from './AuthProvider'
+import Image from 'next/image'
+import { Menu, X, Star, Settings, LogOut, User } from 'lucide-react'
 
-interface AuthContextType {
-  user: User | null
-  login: (email: string, password: string) => Promise<void>
-  register: (name: string, email: string, password: string) => Promise<void>
-  logout: () => void
-  loginWithOAuth: (provider: 'google' | 'github') => Promise<void>
-  checkOAuthSession: () => Promise<void>
-  isLoading: boolean
-  favorites: string[]
-  toggleFavorite: (apiId: string) => Promise<void>
-}
+export function Header() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const { user, logout, isLoading } = useAuth()
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
-
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [favorites, setFavorites] = useState<string[]>([])
-
-  // URL dinâmica para redirect
-  const getRedirectUrl = () => {
-    if (typeof window !== 'undefined') {
-      return `${window.location.origin}/auth/callback`
-    }
-    return process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000/auth/callback'
-  }
-
-  useEffect(() => {
-    checkAuth()
-    
-    // Listener para mudanças de autenticação
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event)
-        if (session?.user) {
-          await fetchUserProfile(session.user.id)
-        } else {
-          setUser(null)
-          setFavorites([])
-        }
-      }
-    )
-
-    return () => subscription.unsubscribe()
-  }, [])
-
-  useEffect(() => {
-    if (user) {
-      loadFavorites()
-    }
-  }, [user])
-
-  const checkAuth = async () => {
+  const handleLogout = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      console.log('Session check:', session)
-      
-      if (session?.user) {
-        await fetchUserProfile(session.user.id)
-      }
-    } catch (error) {
-      console.error('Erro ao verificar autenticação:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const fetchUserProfile = async (userId: string) => {
-    try {
-      const { data: userData, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single()
-
-      if (error) {
-        console.error('Erro ao buscar perfil:', error)
-        return
-      }
-
-      if (userData) {
-        setUser(userData)
-        console.log('User profile loaded:', userData)
-      }
-    } catch (error) {
-      console.error('Erro ao buscar perfil do usuário:', error)
-    }
-  }
-
-  const loadFavorites = async () => {
-    if (!user) return
-
-    try {
-      const { data, error } = await supabase
-        .from('user_favorites')
-        .select('api_id')
-        .eq('user_id', user.id)
-
-      if (error) throw error
-
-      setFavorites(data?.map(fav => fav.api_id) || [])
-    } catch (error) {
-      console.error('Erro ao carregar favoritos:', error)
-    }
-  }
-
-  const login = async (email: string, password: string) => {
-    try {
-      setIsLoading(true)
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-
-      if (error) throw error
-
-      if (data.user) {
-        await fetchUserProfile(data.user.id)
-      }
-    } catch (error: any) {
-      throw new Error(error.message || 'Erro ao fazer login')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const register = async (name: string, email: string, password: string) => {
-    try {
-      setIsLoading(true)
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { name },
-          emailRedirectTo: getRedirectUrl()
-        }
-      })
-
-      if (error) throw error
-
-      // Criar usuário na tabela public.users
-      if (data.user) {
-        const { error: userError } = await supabase
-          .from('users')
-          .insert([
-            {
-              id: data.user.id,
-              name,
-              email,
-              password_hash: 'oauth',
-            }
-          ])
-
-        if (userError) {
-          console.error('Erro ao criar usuário:', userError)
-          // Não lançar erro aqui para não bloquear o registro
-        }
-
-        // Se o email não precisa de confirmação, fazer login automaticamente
-        if (data.session) {
-          await fetchUserProfile(data.user.id)
-        }
-      }
-    } catch (error: any) {
-      throw new Error(error.message || 'Erro ao criar conta')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  // 🔐 Login com OAuth (Google/GitHub)
-  const loginWithOAuth = async (provider: 'google' | 'github') => {
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: getRedirectUrl(),
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          }
-        }
-      })
-
-      if (error) throw error
-
-      // O redirecionamento é automático
-    } catch (error: any) {
-      throw new Error(error.message || `Erro ao conectar com ${provider}`)
-    }
-  }
-
-  // 🔐 Verificar sessão OAuth
-  const checkOAuthSession = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      if (session?.user) {
-        await fetchUserProfile(session.user.id)
-      }
-    } catch (error) {
-      console.error('Erro ao verificar sessão OAuth:', error)
-    }
-  }
-
-  const logout = async () => {
-    try {
-      await supabase.auth.signOut()
-      setUser(null)
-      setFavorites([])
+      await logout()
+      setIsUserMenuOpen(false)
+      setIsMenuOpen(false)
     } catch (error) {
       console.error('Erro ao fazer logout:', error)
     }
   }
 
-  const toggleFavorite = async (apiId: string) => {
-    if (!user) return
-
-    try {
-      const isFavorited = favorites.includes(apiId)
-
-      if (isFavorited) {
-        // Remover dos favoritos
-        const { error } = await supabase
-          .from('user_favorites')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('api_id', apiId)
-
-        if (!error) {
-          setFavorites(prev => prev.filter(id => id !== apiId))
-        }
-      } else {
-        // Adicionar aos favoritos
-        const { error } = await supabase
-          .from('user_favorites')
-          .insert([
-            {
-              user_id: user.id,
-              api_id: apiId,
-            }
-          ])
-
-        if (!error) {
-          setFavorites(prev => [...prev, apiId])
-        }
-      }
-    } catch (error) {
-      console.error('Erro ao alternar favorito:', error)
+  // Fechar menus quando clicar fora
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setIsUserMenuOpen(false)
     }
-  }
+
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [])
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      login,
-      register,
-      logout,
-      loginWithOAuth,
-      checkOAuthSession,
-      isLoading,
-      favorites,
-      toggleFavorite
-    }}>
-      {children}
-    </AuthContext.Provider>
-  )
-}
+    <header className="fixed top-0 w-full z-50 backdrop-blur-md bg-white/70 border-b border-gray-200">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center py-3">
+          {/* Logo */}
+          <Link href="/" className="flex items-center space-x-3 group">
+            <div className="w-12 h-12 md:w-16 md:h-16 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+              <Image 
+                src="/Logo.png" 
+                alt="APIHub Logo"
+                width={64}
+                height={64}
+                className="w-10 h-10 md:w-16 md:h-16 object-contain"
+              />
+            </div>
+            <span className="text-lg md:text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              APIHub
+            </span>
+          </Link>
 
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
-  return context
+          {/* Navigation - Desktop */}
+          <nav className="hidden md:flex items-center space-x-8 absolute left-1/2 transform -translate-x-1/2">
+            <Link href="/" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
+              Início
+            </Link>
+            <Link href="/apis" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
+              Catálogo
+            </Link>
+            <Link href="/suporte" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
+              Suporte
+            </Link>
+          </nav>
+
+          {/* Mobile Menu Button */}
+          <button 
+            className="md:hidden p-2"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+          >
+            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+
+          {/* Auth Section - Desktop */}
+          <div className="hidden md:flex items-center space-x-4">
+            {isLoading ? (
+              <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            ) : user ? (
+              <div className="relative">
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setIsUserMenuOpen(!isUserMenuOpen)
+                  }}
+                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-medium">
+                      {user.name?.charAt(0).toUpperCase() || 'U'}
+                    </span>
+                  </div>
+                </button>
+                
+                {isUserMenuOpen && (
+                  <div className="absolute top-12 right-0 bg-white rounded-xl p-4 min-w-48 shadow-lg border border-gray-200">
+                    <div className="text-sm text-gray-600 mb-2">{user.name}</div>
+                    <div className="text-xs text-gray-500 mb-4">{user.email}</div>
+                    
+                    <Link 
+                      href="/favoritos" 
+                      className="flex items-center gap-2 py-2 text-gray-700 hover:text-blue-600"
+                      onClick={() => setIsUserMenuOpen(false)}
+                    >
+                      <Star className="w-4 h-4" />
+                      Favoritos
+                    </Link>
+                    
+                    <Link 
+                      href="/configuracoes" 
+                      className="flex items-center gap-2 py-2 text-gray-700 hover:text-blue-600"
+                      onClick={() => setIsUserMenuOpen(false)}
+                    >
+                      <Settings className="w-4 h-4" />
+                      Configurações
+                    </Link>
+                    
+                    <button 
+                      onClick={handleLogout}
+                      className="flex items-center gap-2 w-full text-left py-2 text-red-600 hover:text-red-700 mt-2 border-t border-gray-200 pt-3"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Sair
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link 
+                href="/login" 
+                className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 md:px-6 md:py-2 rounded-xl font-medium hover:shadow-lg transition-all duration-300 hover:scale-105 text-sm md:text-base"
+              >
+                Entrar
+              </Link>
+            )}
+          </div>
+        </div>
+
+        {/* Mobile Menu */}
+        {isMenuOpen && (
+          <div className="md:hidden bg-white border-t border-gray-200 py-4">
+            <nav className="flex flex-col space-y-4">
+              <Link 
+                href="/" 
+                className="text-gray-700 hover:text-blue-600 font-medium transition-colors py-2"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Início
+              </Link>
+              <Link 
+                href="/apis" 
+                className="text-gray-700 hover:text-blue-600 font-medium transition-colors py-2"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Catálogo
+              </Link>
+              <Link 
+                href="/suporte" 
+                className="text-gray-700 hover:text-blue-600 font-medium transition-colors py-2"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Suporte
+              </Link>
+              
+              {/* Mobile Auth */}
+              {!user ? (
+                <Link 
+                  href="/login" 
+                  className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition-all text-center"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Entrar
+                </Link>
+              ) : (
+                <div className="border-t border-gray-200 pt-4">
+                  <div className="text-sm text-gray-600 mb-2">{user.name}</div>
+                  <div className="text-xs text-gray-500 mb-4">{user.email}</div>
+                  
+                  <Link 
+                    href="/favoritos" 
+                    className="flex items-center gap-2 py-2 text-gray-700 hover:text-blue-600"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <Star className="w-4 h-4" />
+                    Favoritos
+                  </Link>
+                  
+                  <button 
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 w-full text-left py-2 text-red-600 hover:text-red-700 mt-2"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sair
+                  </button>
+                </div>
+              )}
+            </nav>
+          </div>
+        )}
+      </div>
+    </header>
+  )
 }
