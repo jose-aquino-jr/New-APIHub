@@ -1,8 +1,9 @@
-// lib/auth.js
+// lib/auth.ts
 import { supabase } from './supabase'
+import { User } from '@/types'
 
 // Função de login
-export async function login(email, password) {
+export async function login(email: string, password: string): Promise<{ user: User | null; error: any }> {
   try {
     const { data, error } = await supabase
       .from('users')
@@ -11,15 +12,15 @@ export async function login(email, password) {
       .eq('password_hash', password)
       .single()
 
-    if (error) return { error }
+    if (error) return { user: null, error }
     return { user: data, error: null }
   } catch (error) {
-    return { error }
+    return { user: null, error }
   }
 }
 
 // Função de registro
-export async function register(email, password, name) {
+export async function register(email: string, password: string, name: string): Promise<{ user: User | null; error: any }> {
   try {
     // Verificar se usuário já existe
     const { data: existingUser } = await supabase
@@ -29,7 +30,7 @@ export async function register(email, password, name) {
       .single()
 
     if (existingUser) {
-      return { error: new Error('Usuário já existe') }
+      return { user: null, error: new Error('Usuário já existe') }
     }
 
     // Criar novo usuário
@@ -47,22 +48,24 @@ export async function register(email, password, name) {
       .select()
       .single()
 
-    if (error) return { error }
+    if (error) return { user: null, error }
     return { user: data, error: null }
   } catch (error) {
-    return { error }
+    return { user: null, error }
   }
 }
 
 // Função de logout
-export async function logout() {
+export async function logout(): Promise<void> {
   // Limpar dados locais
-  localStorage.removeItem('user')
-  localStorage.removeItem('authToken')
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('user')
+    localStorage.removeItem('authToken')
+  }
 }
 
 // Buscar usuário atual
-export async function getCurrentUser(userId) {
+export async function getCurrentUser(userId: string): Promise<User | null> {
   const { data, error } = await supabase
     .from('users')
     .select('*')
@@ -74,7 +77,7 @@ export async function getCurrentUser(userId) {
 }
 
 // Verificar sessão
-export async function checkAuth() {
+export async function checkAuth(): Promise<User | null> {
   if (typeof window === 'undefined') return null
   
   const userData = localStorage.getItem('user')
@@ -88,4 +91,4 @@ export async function checkAuth() {
   } catch {
     return null
   }
-}
+}s
