@@ -1,21 +1,14 @@
-import { supabase, User } from './supabase'
-
-export interface AuthContextType {
-  user: User | null
-  login: (email: string, password: string) => Promise<{ error: any }>
-  register: (email: string, password: string, name: string) => Promise<{ error: any }>
-  logout: () => Promise<void>
-  loading: boolean
-}
+// lib/auth.js
+import { supabase } from './supabase'
 
 // Função de login
-export async function login(email: string, password: string) {
+export async function login(email, password) {
   try {
     const { data, error } = await supabase
       .from('users')
       .select('*')
       .eq('email', email)
-      .eq('password_hash', password) // Em produção, usar hash seguro!
+      .eq('password_hash', password)
       .single()
 
     if (error) return { error }
@@ -26,7 +19,7 @@ export async function login(email: string, password: string) {
 }
 
 // Função de registro
-export async function register(email: string, password: string, name: string) {
+export async function register(email, password, name) {
   try {
     // Verificar se usuário já existe
     const { data: existingUser } = await supabase
@@ -46,7 +39,7 @@ export async function register(email: string, password: string, name: string) {
         {
           email,
           name,
-          password_hash: password, // Em produção: await hashPassword(password)
+          password_hash: password,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         },
@@ -69,7 +62,7 @@ export async function logout() {
 }
 
 // Buscar usuário atual
-export async function getCurrentUser(userId: string) {
+export async function getCurrentUser(userId) {
   const { data, error } = await supabase
     .from('users')
     .select('*')
@@ -82,6 +75,8 @@ export async function getCurrentUser(userId: string) {
 
 // Verificar sessão
 export async function checkAuth() {
+  if (typeof window === 'undefined') return null
+  
   const userData = localStorage.getItem('user')
   if (!userData) return null
   
