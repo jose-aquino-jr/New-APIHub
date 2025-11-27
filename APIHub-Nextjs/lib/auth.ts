@@ -91,4 +91,4 @@ export async function checkAuth(): Promise<User | null> {
   } catch {
     return null
   }
-}s
+}
