@@ -4,6 +4,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { User } from '@/types'
 import { checkAuth, login, register, logout } from '@/lib/auth'
+import { supabase } from '@/lib/supabase'
 
 interface AuthContextType {
   user: User | null
@@ -11,6 +12,8 @@ interface AuthContextType {
   register: (email: string, password: string, name: string) => Promise<{ error: any }>
   logout: () => Promise<void>
   isLoading: boolean
+  favorites: string[] // IDs das APIs favoritas
+  toggleFavorite: (apiId: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -18,10 +21,19 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [favorites, setFavorites] = useState<string[]>([])
 
   useEffect(() => {
     initializeAuth()
   }, [])
+
+  useEffect(() => {
+    if (user) {
+      loadFavorites()
+    } else {
+      setFavorites([])
+    }
+  }, [user])
 
   const initializeAuth = async () => {
     try {
@@ -31,6 +43,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('Erro ao inicializar auth:', error)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const loadFavorites = async () => {
+    if (!user) return
+
+    try {
+      const { data, error } = await supabase
+        .from('user_favorites')
+        .select('api_id')
+        .eq('user_id', user.id)
+
+      if (error) {
+        console.error('Erro ao carregar favoritos:', error)
+        return
+      }
+
+      const favoriteIds = data?.map(fav => fav.api_id) || []
+      setFavorites(favoriteIds)
+    } catch (error) {
+      console.error('Erro ao carregar favoritos:', error)
+    }
+  }
+
+  const toggleFavorite = async (apiId: string) => {
+    if (!user) {
+      alert('Você precisa estar logado para favoritar APIs')
+      return
+    }
+
+    try {
+      const isCurrentlyFavorite = favorites.includes(apiId)
+
+      if (isCurrentlyFavorite) {
+        // Remover dos favoritos
+        const { error } = await supabase
+          .from('user_favorites')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('api_id', apiId)
+
+        if (error) throw error
+
+        setFavorites(prev => prev.filter(id => id !== apiId))
+      } else {
+        // Adicionar aos favoritos
+        const { error } = await supabase
+          .from('user_favorites')
+          .insert([
+            {
+              user_id: user.id,
+              api_id: apiId,
+              created_at: new Date().toISOString(),
+            }
+          ])
+
+        if (error) throw error
+
+        setFavorites(prev => [...prev, apiId])
+      }
+    } catch (error) {
+      console.error('Erro ao alternar favorito:', error)
+      alert('Erro ao favoritar/desfavoritar API')
     }
   }
 
@@ -55,6 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const handleLogout = async () => {
     await logout()
     setUser(null)
+    setFavorites([])
   }
 
   const value = {
@@ -62,7 +138,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login: handleLogin,
     register: handleRegister,
     logout: handleLogout,
-    isLoading
+    isLoading,
+    favorites,
+    toggleFavorite
   }
 
   return (
