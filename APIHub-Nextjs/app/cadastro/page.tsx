@@ -38,7 +38,7 @@ export default function Cadastro() {
     }
 
     try {
-      await register(name, email, password)
+      await register(email, password, name)
       router.push('/')
     } catch (err: any) {
       setError(err.message || 'Erro ao criar conta')
@@ -226,4 +226,5 @@ export default function Cadastro() {
       </motion.div>
     </div>
   )
+
 }
