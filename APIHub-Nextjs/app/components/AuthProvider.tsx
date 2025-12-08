@@ -1,4 +1,3 @@
-// components/AuthProvider.tsx
 'use client'
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
@@ -50,12 +49,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const response = await fetch(`https://apihub-br.duckdns.org/favoritos/${user.id}`)
-      const data = await response.json()
+      if (!response.ok) throw new Error('Erro ao carregar favoritos')
       
-      if (response.ok) {
-        const favoriteIds = data?.map((fav: any) => fav.api_id) || []
-        setFavorites(favoriteIds)
-      }
+      const data = await response.json()
+      const favoriteIds = data?.map((fav: any) => fav.api_id) || []
+      setFavorites(favoriteIds)
     } catch (error) {
       console.error('Erro ao carregar favoritos:', error)
     }
@@ -71,7 +69,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const isCurrentlyFavorite = favorites.includes(apiId)
 
       if (isCurrentlyFavorite) {
-        // Remover dos favoritos
         const response = await fetch('https://apihub-br.duckdns.org/favoritos', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
@@ -88,7 +85,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw new Error(data.message || 'Erro ao remover favorito')
         }
       } else {
-        // Adicionar aos favoritos
         const response = await fetch('https://apihub-br.duckdns.org/favoritos', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -112,16 +108,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const handleLogin = async (email: string, password: string) => {
-    console.log('🚀 AuthProvider: Iniciando login')
     const { user: loggedUser, error } = await login(email, password)
     
     if (error) {
-      console.error('❌ AuthProvider Erro:', error.message)
       return { error }
     }
     
     if (loggedUser) {
-      console.log('✅ AuthProvider: Login bem sucedido', loggedUser)
       setUser(loggedUser)
       return { error: null }
     }
@@ -130,16 +123,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const handleRegister = async (email: string, password: string, name: string) => {
-    console.log('🚀 AuthProvider: Iniciando registro')
     const { user: newUser, error } = await register(email, password, name)
     
     if (error) {
-      console.error('❌ AuthProvider Erro:', error.message)
       return { error }
     }
     
     if (newUser) {
-      console.log('✅ AuthProvider: Registro bem sucedido', newUser)
       setUser(newUser)
       return { error: null }
     }
