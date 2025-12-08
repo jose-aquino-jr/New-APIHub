@@ -1,12 +1,9 @@
-// lib/auth.ts
 import { User } from '@/types'
 
 const BACKEND_URL = 'https://apihub-br.duckdns.org'
 
 export async function login(email: string, password: string): Promise<{ user: User | null; error: any }> {
   try {
-    console.log('🔐 Enviando para SEU backend:', BACKEND_URL + '/login')
-    
     const response = await fetch(`${BACKEND_URL}/login`, {
       method: 'POST',
       headers: {
@@ -19,7 +16,6 @@ export async function login(email: string, password: string): Promise<{ user: Us
     })
 
     const data = await response.json()
-    console.log('📦 Resposta do SEU backend:', data)
 
     if (!response.ok) {
       return {
@@ -32,7 +28,6 @@ export async function login(email: string, password: string): Promise<{ user: Us
       if (typeof window !== 'undefined') {
         localStorage.setItem('user', JSON.stringify(data.user))
         localStorage.setItem('authToken', 'authenticated')
-        console.log('💾 Salvo no localStorage:', data.user)
       }
       
       return { user: data.user as User, error: null }
@@ -41,7 +36,7 @@ export async function login(email: string, password: string): Promise<{ user: Us
     return { user: null, error: new Error(data.message || 'Erro desconhecido') }
 
   } catch (error) {
-    console.error('💥 Erro de conexão:', error)
+    console.error('Erro de conexão:', error)
     return {
       user: null,
       error: new Error('Erro ao conectar com o servidor')
@@ -51,8 +46,6 @@ export async function login(email: string, password: string): Promise<{ user: Us
 
 export async function register(email: string, password: string, name: string): Promise<{ user: User | null; error: any }> {
   try {
-    console.log('📝 Enviando para SEU backend:', BACKEND_URL + '/cadastro')
-    
     const response = await fetch(`${BACKEND_URL}/cadastro`, {
       method: 'POST',
       headers: {
@@ -66,7 +59,6 @@ export async function register(email: string, password: string, name: string): P
     })
 
     const data = await response.json()
-    console.log('📦 Resposta do SEU backend:', data)
 
     if (!response.ok) {
       return {
@@ -87,7 +79,7 @@ export async function register(email: string, password: string, name: string): P
     return { user: null, error: new Error(data.message || 'Erro desconhecido') }
 
   } catch (error) {
-    console.error('💥 Erro de conexão:', error)
+    console.error('Erro de conexão:', error)
     return {
       user: null,
       error: new Error('Erro ao conectar com o servidor')
