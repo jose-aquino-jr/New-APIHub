@@ -1,8 +1,9 @@
 // lib/auth.ts
+import { User } from '@/types'
+
 const BACKEND_URL = 'https://apihub-br.duckdns.org'
 
-// LOGIN
-export async function login(email: string, password: string): Promise<{ user: any; error: any }> {
+export async function login(email: string, password: string): Promise<{ user: User | null; error: any }> {
   try {
     console.log('🔐 Enviando para SEU backend:', BACKEND_URL + '/login')
     
@@ -13,7 +14,7 @@ export async function login(email: string, password: string): Promise<{ user: an
       },
       body: JSON.stringify({
         email: email.trim(),
-        senha: password 
+        senha: password
       })
     })
 
@@ -34,7 +35,7 @@ export async function login(email: string, password: string): Promise<{ user: an
         console.log('💾 Salvo no localStorage:', data.user)
       }
       
-      return { user: data.user, error: null }
+      return { user: data.user as User, error: null }
     }
 
     return { user: null, error: new Error(data.message || 'Erro desconhecido') }
@@ -48,8 +49,7 @@ export async function login(email: string, password: string): Promise<{ user: an
   }
 }
 
-// CADASTRO
-export async function register(email: string, password: string, name: string): Promise<{ user: any; error: any }> {
+export async function register(email: string, password: string, name: string): Promise<{ user: User | null; error: any }> {
   try {
     console.log('📝 Enviando para SEU backend:', BACKEND_URL + '/cadastro')
     
@@ -60,8 +60,8 @@ export async function register(email: string, password: string, name: string): P
       },
       body: JSON.stringify({
         email: email.trim(),
-        senha: password, 
-        name: name 
+        senha: password,
+        name: name
       })
     })
 
@@ -76,13 +76,12 @@ export async function register(email: string, password: string, name: string): P
     }
 
     if (data.success && data.user) {
-      // Salvar
       if (typeof window !== 'undefined') {
         localStorage.setItem('user', JSON.stringify(data.user))
         localStorage.setItem('authToken', 'authenticated')
       }
       
-      return { user: data.user, error: null }
+      return { user: data.user as User, error: null }
     }
 
     return { user: null, error: new Error(data.message || 'Erro desconhecido') }
@@ -96,21 +95,19 @@ export async function register(email: string, password: string, name: string): P
   }
 }
 
-// Verificação simples
-export async function checkAuth(): Promise<any> {
+export async function checkAuth(): Promise<User | null> {
   if (typeof window === 'undefined') return null
   
   try {
     const userData = localStorage.getItem('user')
     if (!userData) return null
 
-    return JSON.parse(userData)
+    return JSON.parse(userData) as User
   } catch {
     return null
   }
 }
 
-// Logout
 export async function logout(): Promise<void> {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('user')
