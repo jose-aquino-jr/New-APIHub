@@ -2,38 +2,55 @@
 
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { Star, ArrowRight, Heart } from 'lucide-react'
+import { Star, ArrowRight, Heart, X } from 'lucide-react'
 import { useAuth } from '@/components/AuthProvider'
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
 import { generateSlug, getCategoryFromTags } from '@/lib/utils'
 import type { API } from '@/types'
 
 export default function Favoritos() {
-  const { user, favorites } = useAuth()
+  const { user, favorites, toggleFavorite } = useAuth()
   const [favoriteApis, setFavoriteApis] = useState<API[]>([])
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
-    loadFavoriteApis()
-  }, [favorites])
+    if (user && favorites.length > 0) {
+      loadFavoriteApis()
+    } else {
+      setFavoriteApis([])
+    }
+  }, [user, favorites])
 
   const loadFavoriteApis = async () => {
-    if (favorites.length === 0) {
+    if (!user || favorites.length === 0) {
       setFavoriteApis([])
       return
     }
 
+    setIsLoading(true)
     try {
-      const { data, error } = await supabase
-        .from('apis')
-        .select('*')
-        .in('id', favorites)
+      // Buscar informações das APIs favoritas do backend
+      const response = await fetch('https://apihub-br.duckdns.org/favoritos-completos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user.id })
+      })
 
-      if (error) throw error
-      setFavoriteApis(data || [])
+      if (response.ok) {
+        const data = await response.json()
+        setFavoriteApis(data || [])
+      }
     } catch (error) {
       console.error('Erro ao carregar APIs favoritas:', error)
+    } finally {
+      setIsLoading(false)
     }
+  }
+
+  const handleRemoveFavorite = async (apiId: string) => {
+    await toggleFavorite(apiId)
+    // Atualiza a lista localmente
+    setFavoriteApis(prev => prev.filter(api => api.id !== apiId))
   }
 
   if (!user) {
@@ -69,14 +86,20 @@ export default function Favoritos() {
             Seus <span className="text-gradient">Favoritos</span>
           </h1>
           <p className="text-gray-600">
-            {favoriteApis.length === 0 
-              ? "Você ainda não favoritou nenhuma API"
-              : `${favoriteApis.length} API${favoriteApis.length === 1 ? '' : 's'} favoritada${favoriteApis.length === 1 ? '' : 's'}`
+            {isLoading 
+              ? "Carregando seus favoritos..."
+              : favoriteApis.length === 0 
+                ? "Você ainda não favoritou nenhuma API"
+                : `${favoriteApis.length} API${favoriteApis.length === 1 ? '' : 's'} favoritada${favoriteApis.length === 1 ? '' : 's'}`
             }
           </p>
         </motion.div>
 
-        {favoriteApis.length === 0 ? (
+        {isLoading ? (
+          <div className="text-center py-16">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </div>
+        ) : favoriteApis.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -102,8 +125,17 @@ export default function Favoritos() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="card group cursor-pointer"
+                className="card group relative hover:shadow-xl transition-shadow"
               >
+                {/* Botão de Remover */}
+                <button
+                  onClick={() => handleRemoveFavorite(api.id)}
+                  className="absolute top-4 right-4 p-2 bg-red-50 hover:bg-red-100 rounded-lg text-red-600 transition-colors z-10"
+                  title="Remover dos favoritos"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
                 <div className="flex justify-between items-start mb-4">
                   <span className="badge badge-blue">
                     {getCategoryFromTags(api.tags)}
@@ -126,7 +158,7 @@ export default function Favoritos() {
 
                 <Link
                   href={`/apis/${generateSlug(api.name)}`}
-                  className="btn-primary w-full text-center group-hover:scale-105 transition-transform"
+                  className="btn-primary w-full text-center hover:scale-105 transition-transform"
                 >
                   Ver Detalhes
                 </Link>

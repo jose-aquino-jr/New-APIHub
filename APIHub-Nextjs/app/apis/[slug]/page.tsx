@@ -5,8 +5,7 @@ import { notFound } from 'next/navigation'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { Star, Shield, Globe, Zap, Copy, Check, FileText, Download } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
-import { getCategoryFromTags, parseParameters, getApiBySlug, generateSlug } from '@/lib/utils'
+import { getCategoryFromTags, parseParameters, getApiBySlug, generateSlug, getRelatedApis } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
 import type { API } from '@/types'
 
@@ -42,15 +41,8 @@ export default function APIDetail({ params }: PageProps) {
 
       // Carregar APIs relacionadas
       if (foundApi) {
-        const category = getCategoryFromTags(foundApi.tags)
-        const { data: related } = await supabase
-          .from('apis')
-          .select('*')
-          .neq('id', foundApi.id)
-          .like('tags', `%${category}%`)
-          .limit(4)
-
-        setRelatedApis(related || [])
+        const related = await getRelatedApis(foundApi, 4)
+        setRelatedApis(related)
       }
     } catch (error) {
       console.error('Erro ao carregar API:', error)
@@ -317,11 +309,31 @@ export default function APIDetail({ params }: PageProps) {
 
 // Função auxiliar para cores de categoria
 function getCategoryColor(category: string) {
-  switch (category) {
-    case 'Clima': return 'badge-blue'
-    case 'Financeiro': return 'badge-green'
-    case 'Notícias': return 'badge-purple'
-    case 'IA': return 'badge-orange'
-    default: return 'badge-blue'
+  const colors = {
+    'Clima': 'badge-blue',
+    'Financeiro': 'badge-green',
+    'IA': 'badge-purple',
+    'Animais': 'badge-orange',
+    'Palavras': 'badge-blue',
+    'Dados': 'badge-purple',
+    'Educação': 'badge-green',
+    'Livros': 'badge-orange',
+    'Produtos': 'badge-red',
+    'Diversão': 'badge-pink',
+    'Imagens': 'badge-purple',
+    'Tradução': 'badge-blue',
+    'Nomes': 'badge-indigo',
+    'Localização': 'badge-red',
+    'Fotos': 'badge-purple',
+    'Redes Sociais': 'badge-blue',
+    'Música': 'badge-green',
+    'Jogos': 'badge-yellow',
+    'Desenvolvimento': 'badge-gray',
+    'Email': 'badge-blue',
+    'Calendário': 'badge-green',
+    'Análises': 'badge-indigo',
+    'Mobile': 'badge-purple',
+    'default': 'badge-blue'
   }
+  return colors[category as keyof typeof colors] || colors.default
 }

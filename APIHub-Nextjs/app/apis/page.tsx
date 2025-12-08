@@ -34,9 +34,9 @@ import {
   BarChart3,
   Smartphone
 } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
 import { generateSlug, getCategoryFromTags } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
+import { fetchAPIs } from '@/lib/api'
 import type { API, User } from '@/types'
 
 // Mapeamento de ícones para categorias COMPLETO
@@ -115,13 +115,7 @@ export default function APICatalog() {
 
   const loadAPIs = async () => {
     try {
-      const { data, error } = await supabase
-        .from('apis')
-        .select('*')
-        .order('name')
-
-      if (error) throw error
-
+      const data = await fetchAPIs()
       setApis(data || [])
       
       const allCategories = data?.map(api => getCategoryFromTags(api.tags)) || []

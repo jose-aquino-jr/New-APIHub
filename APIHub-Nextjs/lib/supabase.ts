@@ -1,11 +1,5 @@
-import { createClient } from '@supabase/supabase-js'
+// lib/supabase.ts - APENAS TIPOS, SEM CLIENT SUPABASE
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-export const supabase = createClient(supabaseUrl, supabaseKey)
-
-// Tipos baseados no seu schema
 export interface User {
   id: string
   name: string
@@ -40,6 +34,4 @@ export interface UserFavorite {
   user_id: string
   api_id: string
   created_at: string
-  apis: API
-
 }

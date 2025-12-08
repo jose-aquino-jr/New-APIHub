@@ -5,15 +5,13 @@ import { useState } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Mail, Lock, Eye, EyeOff, User } from 'lucide-react'
+import { Mail, Lock, User } from 'lucide-react'
 
 export default function Cadastro() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   
@@ -72,100 +70,97 @@ export default function Cadastro() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Nome Input */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Nome completo
             </label>
-            <div className="input-icon-container">
-              <User className="input-icon" />
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="input input-with-icon"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 placeholder="Seu nome"
                 required
               />
             </div>
           </div>
 
+          {/* Email Input */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Email
             </label>
-            <div className="input-icon-container">
-              <Mail className="input-icon" />
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="input input-with-icon"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 placeholder="seu@email.com"
                 required
               />
             </div>
           </div>
 
+          {/* Senha Input - SEM OLHO */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Senha
             </label>
-            <div className="input-icon-container">
-              <Lock className="input-icon" />
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
-                type={showPassword ? 'text' : 'password'}
+                type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="input input-with-icon"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 placeholder="Mínimo 6 caracteres"
                 required
                 minLength={6}
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="input-icon-right hover:text-gray-600"
-              >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
             </div>
           </div>
 
+          {/* Confirmar Senha Input - SEM OLHO */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Confirmar senha
             </label>
-            <div className="input-icon-container">
-              <Lock className="input-icon" />
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
-                type={showConfirmPassword ? 'text' : 'password'}
+                type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="input input-with-icon"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 placeholder="Digite novamente sua senha"
                 required
               />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="input-icon-right hover:text-gray-600"
-              >
-                {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
             </div>
           </div>
 
           <button
             type="submit"
             disabled={isLoading}
-            className="btn-primary w-full"
+            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-3 rounded-xl hover:shadow-lg transition-all disabled:opacity-50"
           >
-            {isLoading ? 'Criando conta...' : 'Criar conta'}
+            {isLoading ? (
+              <div className="flex items-center justify-center">
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                Criando conta...
+              </div>
+            ) : (
+              'Criar conta'
+            )}
           </button>
         </form>
 
-        <div className="mt-6 text-center">
-          <p className="text-gray-600">
+        <div className="mt-6 pt-6 border-t border-gray-200">
+          <p className="text-gray-600 text-center">
             Já tem uma conta?{' '}
             <Link href="/login" className="text-blue-600 hover:text-blue-700 font-medium">
               Fazer login

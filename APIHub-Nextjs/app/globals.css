@@ -41,7 +41,37 @@
   animation: float 6s ease-in-out infinite;
 }
 
+/* ========== FORMULÁRIOS ========== */
+.input {
+  @apply w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 bg-white;
+}
 
+.input-icon-container {
+  @apply relative w-full;
+}
+
+.input-icon {
+  @apply absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none;
+}
+
+.input-icon-right {
+  @apply absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 cursor-pointer z-10 bg-transparent border-0 p-0;
+  /* Fix: removi pointer-events-none e adicionei estilos de botão */
+}
+
+.input-with-icon {
+  @apply pl-10 pr-10; /* Para inputs com ícones dos dois lados */
+}
+
+.input-with-icon-left {
+  @apply pl-10; /* Para inputs com apenas ícone esquerdo */
+}
+
+.input-with-icon-right {
+  @apply pr-10; /* Para inputs com apenas ícone direito */
+}
+
+/* ========== BOTÕES ========== */
 .btn-primary {
   @apply bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold px-6 py-3 rounded-xl transition-all duration-200 hover:shadow-lg hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
 }
@@ -54,32 +84,9 @@
   @apply text-gray-600 hover:text-blue-600 font-medium px-4 py-2 rounded-lg transition-all duration-200 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
 }
 
+/* ========== COMPONENTES ========== */
 .card {
   @apply bg-white rounded-2xl p-6 shadow-sm border border-gray-200 transition-all duration-200 hover:shadow-md hover:border-blue-200;
-}
-
-.input {
-  @apply w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 bg-white;
-}
-
-.input-with-icon {
-  @apply pl-10 pr-4; 
-}
-
-.input-with-icon-right {
-  @apply pr-10 pl-4;
-}
-
-.input-icon-container {
-  @apply relative w-full;
-}
-
-.input-icon {
-  @apply absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none;
-}
-
-.input-icon-right {
-  @apply absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5;
 }
 
 .text-gradient {
@@ -130,7 +137,6 @@
 .badge-green {
   @apply bg-green-100 text-green-600;
 }
-/* 🎯 MELHORIAS PARA OS COMPONENTES */
 
 /* Badge com efeito glow */
 .badge-glow {
@@ -154,7 +160,16 @@
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
-/* Responsive improvements */
+/* ========== LAYOUT ========== */
+.container-custom {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+.section-padding {
+  @apply py-16 px-4;
+}
+
+/* ========== RESPONSIVO ========== */
 @media (max-width: 768px) {
   .container-custom {
     @apply px-4;
@@ -165,7 +180,7 @@
   }
 }
 
-/* Scroll suave para filtros mobile */
+/* ========== ANIMAÇÕES ========== */
 .mobile-filters-enter {
   max-height: 0;
   opacity: 0;
@@ -187,14 +202,8 @@
   opacity: 0;
   transition: all 0.3s ease-in-out;
 }
-.container-custom {
-  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
-}
 
-.section-padding {
-  @apply py-16 px-4;
-}
-
+/* ========== SCROLLBAR ========== */
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -212,11 +221,11 @@
   background: linear-gradient(to bottom, #2563eb, #7c3aed);
 }
 
+/* ========== ACESSIBILIDADE ========== */
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-
 }

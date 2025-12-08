@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { User } from '@/types'
-import { login, register, logout, checkAuth } from '@/lib/auth'
 
 interface AuthContextType {
   user: User | null
@@ -35,8 +34,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const initializeAuth = async () => {
     try {
-      const currentUser = await checkAuth()
-      setUser(currentUser)
+      if (typeof window !== 'undefined') {
+        const userData = localStorage.getItem('user')
+        if (userData) {
+          const parsedUser = JSON.parse(userData)
+          setUser(parsedUser)
+          
+          // Carregar favoritos do localStorage
+          const favs = localStorage.getItem(`favorites_${parsedUser.id}`)
+          if (favs) setFavorites(JSON.parse(favs))
+        }
+      }
     } catch (error) {
       console.error('Erro ao inicializar auth:', error)
     } finally {
@@ -49,11 +57,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const response = await fetch(`https://apihub-br.duckdns.org/favoritos/${user.id}`)
-      if (!response.ok) throw new Error('Erro ao carregar favoritos')
+      if (!response.ok) return
       
       const data = await response.json()
       const favoriteIds = data?.map((fav: any) => fav.api_id) || []
       setFavorites(favoriteIds)
+      // Salvar no localStorage
+      localStorage.setItem(`favorites_${user.id}`, JSON.stringify(favoriteIds))
     } catch (error) {
       console.error('Erro ao carregar favoritos:', error)
     }
@@ -69,6 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const isCurrentlyFavorite = favorites.includes(apiId)
 
       if (isCurrentlyFavorite) {
+        // Remover dos favoritos
         const response = await fetch('https://apihub-br.duckdns.org/favoritos', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
@@ -79,12 +90,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })
 
         if (response.ok) {
-          setFavorites(prev => prev.filter(id => id !== apiId))
-        } else {
-          const data = await response.json()
-          throw new Error(data.message || 'Erro ao remover favorito')
+          const newFavorites = favorites.filter(id => id !== apiId)
+          setFavorites(newFavorites)
+          localStorage.setItem(`favorites_${user.id}`, JSON.stringify(newFavorites))
         }
       } else {
+        // Adicionar aos favoritos
         const response = await fetch('https://apihub-br.duckdns.org/favoritos', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -95,51 +106,83 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })
 
         if (response.ok) {
-          setFavorites(prev => [...prev, apiId])
-        } else {
-          const data = await response.json()
-          throw new Error(data.message || 'Erro ao favoritar')
+          const newFavorites = [...favorites, apiId]
+          setFavorites(newFavorites)
+          localStorage.setItem(`favorites_${user.id}`, JSON.stringify(newFavorites))
         }
       }
     } catch (error: any) {
       console.error('Erro ao alternar favorito:', error)
-      alert(error.message || 'Erro ao favoritar/desfavoritar API')
+      alert('Erro ao favoritar/desfavoritar API')
     }
   }
 
   const handleLogin = async (email: string, password: string) => {
-    const { user: loggedUser, error } = await login(email, password)
-    
-    if (error) {
-      return { error }
+    setIsLoading(true)
+    try {
+      const response = await fetch('https://apihub-br.duckdns.org/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email: email.trim().toLowerCase(), 
+          senha: password 
+        })
+      })
+      
+      const data = await response.json()
+      
+      if (response.ok && data.success) {
+        const userData = data.user
+        setUser(userData)
+        localStorage.setItem('user', JSON.stringify(userData))
+        // Carregar favoritos após login
+        await loadFavorites()
+        return { error: null }
+      }
+      return { error: new Error(data.message || 'Erro no login') }
+    } catch (error) {
+      return { error: new Error('Erro de conexão') }
+    } finally {
+      setIsLoading(false)
     }
-    
-    if (loggedUser) {
-      setUser(loggedUser)
-      return { error: null }
-    }
-    
-    return { error: new Error('Erro desconhecido') }
   }
 
   const handleRegister = async (email: string, password: string, name: string) => {
-    const { user: newUser, error } = await register(email, password, name)
-    
-    if (error) {
-      return { error }
+    setIsLoading(true)
+    try {
+      const response = await fetch('https://apihub-br.duckdns.org/cadastro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email: email.trim().toLowerCase(), 
+          senha: password,
+          name: name.trim()
+        })
+      })
+      
+      const data = await response.json()
+      
+      if (response.ok && data.success) {
+        const userData = data.user
+        setUser(userData)
+        localStorage.setItem('user', JSON.stringify(userData))
+        return { error: null }
+      }
+      return { error: new Error(data.message || 'Erro no cadastro') }
+    } catch (error) {
+      return { error: new Error('Erro de conexão') }
+    } finally {
+      setIsLoading(false)
     }
-    
-    if (newUser) {
-      setUser(newUser)
-      return { error: null }
-    }
-    
-    return { error: new Error('Erro desconhecido') }
   }
 
   const handleLogout = async () => {
-    await logout()
     setUser(null)
+    setFavorites([])
+    localStorage.removeItem('user')
+    if (user) {
+      localStorage.removeItem(`favorites_${user.id}`)
+    }
   }
 
   const value: AuthContextType = {

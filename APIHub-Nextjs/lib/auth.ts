@@ -10,7 +10,7 @@ export async function login(email: string, password: string): Promise<{ user: Us
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        email: email.trim(),
+        email: email.trim().toLowerCase(),
         senha: password
       })
     })
@@ -52,9 +52,9 @@ export async function register(email: string, password: string, name: string): P
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        email: email.trim(),
+        email: email.trim().toLowerCase(),
         senha: password,
-        name: name
+        name: name.trim()
       })
     })
 

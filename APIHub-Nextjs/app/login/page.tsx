@@ -5,12 +5,11 @@ import { useState } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react'
+import { Mail, Lock } from 'lucide-react'
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   
@@ -61,13 +60,13 @@ export default function Login() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Email
             </label>
-            <div className="input-icon-container">
-              <Mail className="input-icon" />
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="input input-with-icon"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 placeholder="seu@email.com"
                 required
               />
@@ -78,30 +77,24 @@ export default function Login() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Senha
             </label>
-            <div className="input-icon-container">
-              <Lock className="input-icon" />
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
-                type={showPassword ? 'text' : 'password'}
+                type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="input input-with-icon"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 placeholder="Sua senha"
                 required
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="input-icon-right hover:text-gray-600"
-              >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
+              {/* SEM BOTÃO DO OLHO - REMOVIDO COMPLETAMENTE */}
             </div>
           </div>
 
           <button
             type="submit"
             disabled={isLoading}
-            className="btn-primary w-full"
+            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-3 rounded-xl hover:shadow-lg transition-all disabled:opacity-50"
           >
             {isLoading ? 'Entrando...' : 'Entrar'}
           </button>
