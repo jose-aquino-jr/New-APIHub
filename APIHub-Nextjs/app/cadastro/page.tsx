@@ -1,11 +1,12 @@
+// app/cadastro/page.tsx
 'use client'
 
 import { motion } from 'framer-motion'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Mail, Lock, Eye, EyeOff, User, Github, Chrome } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, User } from 'lucide-react'
 
 export default function Cadastro() {
   const [name, setName] = useState('')
@@ -15,16 +16,10 @@ export default function Cadastro() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [oauthLoading, setOauthLoading] = useState('')
   const [error, setError] = useState('')
   
-  const { register, loginWithOAuth, checkOAuthSession } = useAuth()
+  const { register } = useAuth()
   const router = useRouter()
-
-  // Verificar se veio de um callback OAuth
-  useEffect(() => {
-    checkOAuthSession()
-  }, [checkOAuthSession])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,25 +32,23 @@ export default function Cadastro() {
       return
     }
 
+    if (password.length < 6) {
+      setError('A senha deve ter pelo menos 6 caracteres')
+      setIsLoading(false)
+      return
+    }
+
     try {
-      await register(email, password, name)
-      router.push('/')
+      const { error } = await register(email, password, name)
+      if (error) {
+        setError(error.message)
+      } else {
+        router.push('/')
+      }
     } catch (err: any) {
       setError(err.message || 'Erro ao criar conta')
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  const handleOAuthLogin = async (provider: 'google' | 'github') => {
-    setOauthLoading(provider)
-    setError('')
-
-    try {
-      await loginWithOAuth(provider)
-    } catch (err: any) {
-      setError(`Erro ao conectar com ${provider === 'google' ? 'Google' : 'GitHub'}`)
-      setOauthLoading('')
     }
   }
 
@@ -80,7 +73,6 @@ export default function Cadastro() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Nome Input */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Nome completo
@@ -98,7 +90,6 @@ export default function Cadastro() {
             </div>
           </div>
 
-          {/* Email Input */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Email
@@ -116,7 +107,6 @@ export default function Cadastro() {
             </div>
           </div>
 
-          {/* Senha Input */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Senha
@@ -142,7 +132,6 @@ export default function Cadastro() {
             </div>
           </div>
 
-          {/* Confirmar Senha Input */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Confirmar senha
@@ -176,45 +165,6 @@ export default function Cadastro() {
           </button>
         </form>
 
-        <div className="mt-6">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">Ou continue com</span>
-            </div>
-          </div>
-
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            <button
-              onClick={() => handleOAuthLogin('google')}
-              disabled={!!oauthLoading}
-              className="w-full inline-flex justify-center items-center gap-3 py-3 px-4 border border-gray-300 rounded-xl bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {oauthLoading === 'google' ? (
-                <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <Chrome className="w-5 h-5 text-red-600" />
-              )}
-              <span>Google</span>
-            </button>
-
-            <button
-              onClick={() => handleOAuthLogin('github')}
-              disabled={!!oauthLoading}
-              className="w-full inline-flex justify-center items-center gap-3 py-3 px-4 border border-gray-300 rounded-xl bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {oauthLoading === 'github' ? (
-                <div className="w-5 h-5 border-2 border-gray-800 border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <Github className="w-5 h-5" />
-              )}
-              <span>GitHub</span>
-            </button>
-          </div>
-        </div>
-
         <div className="mt-6 text-center">
           <p className="text-gray-600">
             Já tem uma conta?{' '}
@@ -226,5 +176,4 @@ export default function Cadastro() {
       </motion.div>
     </div>
   )
-
 }
