@@ -1,7 +1,7 @@
 import './globals.css'
 import { Inter } from 'next/font/google'
 import { Header } from './components/Header'
-import { AuthProvider } from './components/AuthProvider'
+import { AuthProvider } from '../components/AuthProvider'
 import Image from 'next/image'
 
 const inter = Inter({ 
@@ -17,7 +17,6 @@ export const metadata = {
   description: 'Descubra e integre APIs gratuitas em uma plataforma moderna desenvolvida para desenvolvedores.',
 }
 
-// Mova o Footer component para dentro do mesmo arquivo
 function Footer() {
   return (
     <footer className="relative bg-white border-t border-gray-200/60 backdrop-blur-sm">
@@ -25,7 +24,6 @@ function Footer() {
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12 mb-8">
             
-            {/* Brand Section */}
             <div className="lg:col-span-1">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 flex items-center justify-center">
@@ -59,7 +57,6 @@ function Footer() {
               </div>
             </div>
 
-            {/* Navigation */}
             <div>
               <h4 className="font-semibold text-gray-900 mb-4 text-lg">Navegação</h4>
               <ul className="space-y-3">
@@ -81,7 +78,6 @@ function Footer() {
               </ul>
             </div>
 
-            {/* Categories */}
             <div>
               <h4 className="font-semibold text-gray-900 mb-4 text-lg">Categorias</h4>
               <ul className="space-y-3">
@@ -102,7 +98,6 @@ function Footer() {
               </ul>
             </div>
 
-            {/* Contact */}
             <div>
               <h4 className="font-semibold text-gray-900 mb-4 text-lg">Contato</h4>
               <div className="space-y-4">
@@ -127,7 +122,6 @@ function Footer() {
             </div>
           </div>
 
-          {/* Bottom Bar */}
           <div className="border-t border-gray-200/60 pt-8">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
               <div className="text-gray-600 text-sm flex items-center gap-2">
@@ -163,39 +157,34 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" />
       </head>
       <body className={`${inter.className} antialiased`}>
-        <AuthProvider>
-          {/* Background Tech Moderno */}
-          <div className="fixed inset-0 -z-10 overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-blue-50" />
-            
-            {/* Grid Pattern Tech */}
-            <div className="absolute inset-0 opacity-30">
-              <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:64px_64px]" />
-            </div>
-            
-            {/* Animated Orbs */}
-            <div className="absolute top-20 left-10 w-64 h-64 bg-blue-200/20 rounded-full blur-3xl animate-float md:w-96 md:h-96 md:top-1/4 md:left-1/4">
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-200 to-cyan-200 rounded-full opacity-60" />
-            </div>
-            
-            <div className="absolute top-40 right-10 w-56 h-56 bg-purple-200/20 rounded-full blur-3xl animate-float md:w-80 md:h-80 md:top-1/3 md:right-1/4" style={{animationDelay: '2s'}}>
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-200 to-pink-200 rounded-full opacity-60" />
-            </div>
-            
-            <div className="absolute bottom-20 left-1/2 -translate-x-1/2 w-48 h-48 bg-cyan-200/20 rounded-full blur-3xl animate-float md:w-64 md:h-64 md:bottom-1/4" style={{animationDelay: '4s'}}>
-              <div className="absolute inset-0 bg-gradient-to-r from-cyan-200 to-blue-200 rounded-full opacity-60" />
-            </div>
+        <div className="fixed inset-0 -z-10 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-blue-50" />
+          
+          <div className="absolute inset-0 opacity-30">
+            <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:64px_64px]" />
           </div>
+          
+          <div className="absolute top-20 left-10 w-64 h-64 bg-blue-200/20 rounded-full blur-3xl animate-float md:w-96 md:h-96 md:top-1/4 md:left-1/4">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-200 to-cyan-200 rounded-full opacity-60" />
+          </div>
+          
+          <div className="absolute top-40 right-10 w-56 h-56 bg-purple-200/20 rounded-full blur-3xl animate-float md:w-80 md:h-80 md:top-1/3 md:right-1/4" style={{animationDelay: '2s'}}>
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-200 to-pink-200 rounded-full opacity-60" />
+          </div>
+          
+          <div className="absolute bottom-20 left-1/2 -translate-x-1/2 w-48 h-48 bg-cyan-200/20 rounded-full blur-3xl animate-float md:w-64 md:h-64 md:bottom-1/4" style={{animationDelay: '4s'}}>
+            <div className="absolute inset-0 bg-gradient-to-r from-cyan-200 to-blue-200 rounded-full opacity-60" />
+          </div>
+        </div>
 
+        <AuthProvider>
           <Header />
           <main className="relative">
             {children}
           </main>
-          
           <Footer />
         </AuthProvider>
       </body>
     </html>
   )
-
 }
