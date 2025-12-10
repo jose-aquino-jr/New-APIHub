@@ -118,15 +118,18 @@ export default function Suporte() {
           </p>
           <a
   href="/documentacao-oficial-apihub.pdf"
-  download
+  target="_blank"
+  rel="noopener noreferrer"
   className="btn-primary inline-flex items-center gap-2"
 >
-  <span>Baixar Documentação</span>
+  <span>Ver Documentação</span>
   <ArrowRight className="w-4 h-4" />
 </a>
+
         </motion.div>
       </div>
     </div>
   )
 
 }
+
