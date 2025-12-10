@@ -12,42 +12,50 @@ export default function Cadastro() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [acceptTerms, setAcceptTerms] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
-  
+
   const { register } = useAuth()
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError('')
+  e.preventDefault()
+  setIsLoading(true)
+  setError('')
 
-    if (password !== confirmPassword) {
-      setError('As senhas não coincidem')
-      setIsLoading(false)
-      return
-    }
-
-    if (password.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres')
-      setIsLoading(false)
-      return
-    }
-
-    try {
-      const { error } = await register(email, password, name)
-      if (error) {
-        setError(error.message)
-      } else {
-        router.push('/')
-      }
-    } catch (err: any) {
-      setError(err.message || 'Erro ao criar conta')
-    } finally {
-      setIsLoading(false)
-    }
+  // Validação dos termos
+  if (!acceptTerms) {
+    setError('Você deve aceitar os Termos de Uso e a Política de Privacidade')
+    setIsLoading(false)
+    return
   }
+
+  if (password !== confirmPassword) {
+    setError('As senhas não coincidem')
+    setIsLoading(false)
+    return
+  }
+
+  if (password.length < 6) {
+    setError('A senha deve ter pelo menos 6 caracteres')
+    setIsLoading(false)
+    return
+  }
+
+  try {
+    const { error } = await register(email, password, name, acceptTerms)
+    if (error) {
+      setError(error.message)
+    } else {
+      router.push('/')
+    }
+  } catch (err: any) {
+    setError(err.message || 'Erro ao criar conta')
+  } finally {
+    setIsLoading(false)
+  }
+}
 
   return (
     <div className="min-h-screen pt-20 bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center px-4">
@@ -106,7 +114,7 @@ export default function Cadastro() {
             </div>
           </div>
 
-          {/* Senha Input - SEM OLHO */}
+          {/* Senha Input */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Senha
@@ -125,7 +133,7 @@ export default function Cadastro() {
             </div>
           </div>
 
-          {/* Confirmar Senha Input - SEM OLHO */}
+          {/* Confirmar Senha Input */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Confirmar senha
@@ -143,6 +151,24 @@ export default function Cadastro() {
             </div>
           </div>
 
+          {/* Checkbox de Termos */}
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="acceptTerms"
+              checked={acceptTerms}
+              onChange={(e) => setAcceptTerms(e.target.checked)}
+              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              required
+            />
+            <label htmlFor="acceptTerms" className="text-gray-700 text-sm">
+              Eu li e aceito a{' '}
+              <Link href="/privacidade" className="text-blue-600 underline">Política de Privacidade</Link> e os{' '}
+              <Link href="/termos" className="text-blue-600 underline">Termos de Uso</Link>
+            </label>
+          </div>
+
+          {/* Botão de Cadastro */}
           <button
             type="submit"
             disabled={isLoading}

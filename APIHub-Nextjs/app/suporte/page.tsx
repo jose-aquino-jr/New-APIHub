@@ -116,20 +116,12 @@ export default function Suporte() {
           <p className="text-gray-600 mb-6 max-w-md mx-auto">
             Acesse nossa documentação detalhada com guias de integração e exemplos
           </p>
-          <a
-  href="/documentacao-oficial-apihub.pdf"
-  target="_blank"
-  rel="noopener noreferrer"
-  className="btn-primary inline-flex items-center gap-2"
->
-  <span>Ver Documentação</span>
-  <ArrowRight className="w-4 h-4" />
-</a>
-
+          <button className="btn-primary inline-flex items-center gap-2">
+            <span>Ver Documentação</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
         </motion.div>
       </div>
     </div>
   )
-
 }
-

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from './AuthProvider'
 import Image from 'next/image'
-import { Menu, X } from 'lucide-react'
+import { Menu, X, BookOpen } from 'lucide-react'
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -39,6 +39,9 @@ export function Header() {
             <Link href="/apis" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
               Catálogo
             </Link>
+            <Link href="/academy" className="text-gray-700 hover:text-blue-600 font-medium transition-colors flex items-center gap-1">
+              Academy
+            </Link>
             <Link href="/suporte" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
               Suporte
             </Link>
@@ -71,15 +74,27 @@ export function Header() {
                   <div className="absolute top-16 right-4 bg-white rounded-xl p-4 min-w-48 shadow-lg border border-gray-200">
                     <div className="text-sm text-gray-600 mb-2">{user.name}</div>
                     <div className="text-xs text-gray-500 mb-4">{user.email}</div>
-                    <Link href="/favoritos" className="block py-2 text-gray-700 hover:text-blue-600">
+                    <Link 
+                      href="/favoritos" 
+                      className="block py-2 text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded px-2"
+                    >
                       ⭐ Favoritos
                     </Link>
-                    <Link href="/configuracoes" className="block py-2 text-gray-700 hover:text-blue-600">
+                    <Link 
+                      href="/academy/dashboard" 
+                      className="block py-2 text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded px-2"
+                    >
+                      📚 Meus Cursos
+                    </Link>
+                    <Link 
+                      href="/configuracoes" 
+                      className="block py-2 text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded px-2"
+                    >
                       ⚙️ Configurações
                     </Link>
                     <button 
                       onClick={logout}
-                      className="w-full text-left py-2 text-red-600 hover:text-red-700 mt-2 border-t border-gray-200 pt-3"
+                      className="w-full text-left py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded px-2 mt-2 border-t border-gray-200 pt-3"
                     >
                       🚪 Sair
                     </button>
@@ -116,6 +131,13 @@ export function Header() {
                 Catálogo
               </Link>
               <Link 
+                href="/academy" 
+                className="text-gray-700 hover:text-blue-600 font-medium transition-colors py-2 flex items-center gap-2"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Academy
+              </Link>
+              <Link 
                 href="/suporte" 
                 className="text-gray-700 hover:text-blue-600 font-medium transition-colors py-2"
                 onClick={() => setIsMenuOpen(false)}
@@ -124,7 +146,27 @@ export function Header() {
               </Link>
               
               {/* Mobile Auth */}
-              {!user && (
+              {user ? (
+                <div className="pt-4 border-t border-gray-200">
+                  <div className="text-sm text-gray-600 mb-2">{user.name}</div>
+                  <Link 
+                    href="/academy/dashboard" 
+                    className="block py-2 text-gray-700 hover:text-blue-600"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    📚 Meus Cursos
+                  </Link>
+                  <button 
+                    onClick={() => {
+                      logout();
+                      setIsMenuOpen(false);
+                    }}
+                    className="w-full text-left py-2 text-red-600 hover:text-red-700 mt-2"
+                  >
+                    🚪 Sair
+                  </button>
+                </div>
+              ) : (
                 <Link 
                   href="/login" 
                   className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition-all text-center"

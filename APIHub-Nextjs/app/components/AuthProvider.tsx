@@ -6,7 +6,7 @@ import { User } from '@/types'
 interface AuthContextType {
   user: User | null
   login: (email: string, password: string) => Promise<{ error: any }>
-  register: (email: string, password: string, name: string) => Promise<{ error: any }>
+  register: (email: string, password: string, name: string, acceptTerms: boolean) => Promise<{ error: any }> // ← ATUALIZADO
   logout: () => Promise<void>
   isLoading: boolean
   favorites: string[]
@@ -147,34 +147,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const handleRegister = async (email: string, password: string, name: string) => {
-    setIsLoading(true)
-    try {
-      const response = await fetch('https://apihub-br.duckdns.org/cadastro', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          email: email.trim().toLowerCase(), 
-          senha: password,
-          name: name.trim()
-        })
+  const handleRegister = async (email: string, password: string, name: string, acceptTerms: boolean) => {
+  setIsLoading(true)
+  try {
+    const response = await fetch('https://apihub-br.duckdns.org/cadastro', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        email: email.trim().toLowerCase(), 
+        senha: password,
+        name: name.trim(),
+        aceitou_termos: acceptTerms // ← AQUI ENVIAMOS OS TERMOS
       })
-      
-      const data = await response.json()
-      
-      if (response.ok && data.success) {
-        const userData = data.user
-        setUser(userData)
-        localStorage.setItem('user', JSON.stringify(userData))
-        return { error: null }
-      }
-      return { error: new Error(data.message || 'Erro no cadastro') }
-    } catch (error) {
-      return { error: new Error('Erro de conexão') }
-    } finally {
-      setIsLoading(false)
+    })
+    
+    const data = await response.json()
+    
+    if (response.ok && data.success) {
+      const userData = data.user
+      setUser(userData)
+      localStorage.setItem('user', JSON.stringify(userData))
+      return { error: null }
     }
+    return { error: new Error(data.message || 'Erro no cadastro') }
+  } catch (error) {
+    return { error: new Error('Erro de conexão') }
+  } finally {
+    setIsLoading(false)
   }
+}
 
   const handleLogout = async () => {
     setUser(null)

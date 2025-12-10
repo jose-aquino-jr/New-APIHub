@@ -18,7 +18,7 @@ export default function Home() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setStats({ apis: 40, categories: 15, users: 3 })
+      setStats({ apis: 40, categories: 15, users: 1 })
     }, 1000)
     return () => clearTimeout(timer)
   }, [])
@@ -83,16 +83,10 @@ export default function Home() {
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
             
-            <a
-  href="/documentacao-oficial-apihub.pdf"
-  target="_blank"
-  rel="noopener noreferrer"
-  className="btn-secondary group flex items-center gap-3"
->
-  <Zap className="w-5 h-5" />
-  <span>Ver Documentação</span>
-</a>
-
+            <button className="btn-secondary group flex items-center gap-3">
+              <Zap className="w-5 h-5" />
+              <span>Ver Documentação</span>
+            </button>
           </motion.div>
 
           {/* Stats */}
@@ -288,6 +282,4 @@ export default function Home() {
     </div>
   )
 }
-
-
 

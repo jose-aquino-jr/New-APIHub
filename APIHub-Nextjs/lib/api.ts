@@ -1,384 +1,241 @@
 // lib/api.ts
-const BACKEND_URL = 'https://apihub-br.duckdns.org'
+import type { API } from '@/types'
 
-export async function fetchAPIs(): Promise<any[]> {
-  console.log('🔍 [API] Buscando APIs do backend...')
-  
+const API_BASE_URL = 'https://apihub-br.duckdns.org'
+
+// Função para buscar todas as APIs
+export async function fetchAPIs(): Promise<API[]> {
   try {
-    // Primeiro testar o health check
-    const healthResponse = await fetch(`${BACKEND_URL}/health`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json'
-      }
-    })
+    console.log('🔍 [api] Buscando todas as APIs...')
     
-    if (!healthResponse.ok) {
-      console.error('❌ Health check falhou:', healthResponse.status)
-      throw new Error(`Servidor indisponível: ${healthResponse.status}`)
-    }
-    
-    const healthData = await healthResponse.json()
-    console.log('✅ Health check ok:', healthData.status)
-    
-    // Agora buscar as APIs
-    const response = await fetch(`${BACKEND_URL}/apis`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }
-    })
-    
-    console.log('📡 Status da resposta /apis:', response.status)
+    const response = await fetch(`${API_BASE_URL}/apis`)
     
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error('❌ Erro na resposta:', {
-        status: response.status,
-        statusText: response.statusText,
-        body: errorText
-      })
-      
-      if (response.status === 404) {
-        console.log('⚠️ Endpoint /apis não encontrado no backend')
-      }
-      
-      throw new Error(`Falha ao buscar APIs: ${response.status} ${response.statusText}`)
-    }
-    
-    const data = await response.json()
-    
-    // Verificar se é um array
-    if (!Array.isArray(data)) {
-      console.warn('⚠️ Resposta não é um array:', typeof data)
-      
-      // Tentar extrair array de diferentes formatos
-      if (data && Array.isArray(data.data)) {
-        console.log('✅ Encontrado array em data.data')
-        return data.data
-      }
-      
-      if (data && Array.isArray(data.apis)) {
-        console.log('✅ Encontrado array em data.apis')
-        return data.apis
-      }
-      
-      console.log('❌ Não foi possível extrair array de dados')
+      console.error('❌ [api] Erro ao buscar APIs:', response.status)
       return []
     }
     
-    console.log(`✅ ${data.length} APIs carregadas com sucesso`)
-    return data
+    const apis = await response.json()
+    console.log(`✅ [api] ${apis.length} APIs carregadas`)
     
+    return apis
   } catch (error) {
-    console.error('❌ Erro ao buscar APIs:', error)
-    
-    // Log detalhado para depuração
-    if (error instanceof TypeError) {
-      console.error('🔧 Detalhes do erro:', {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
-      })
-      
-      // Testar conectividade básica
-      console.log('🔧 Testando conectividade com o backend...')
-      try {
-        const testPing = await fetch(`${BACKEND_URL}`, { mode: 'no-cors' })
-        console.log('🔧 Teste de conectividade:', testPing.type)
-      } catch (testError) {
-        console.error('🔧 Conectividade falhou:', testError)
-      }
-    }
-    
-    // Fallback para desenvolvimento
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔄 Usando dados mock para desenvolvimento')
-      return getMockAPIs()
-    }
-    
+    console.error('❌ [api] Erro de rede:', error)
     return []
   }
 }
 
-// Função de fallback com dados mock
-function getMockAPIs() {
-  console.log('🎭 Carregando dados mock...')
-  
-  return [
-    {
-      id: '1',
-      name: 'ViaCEP',
-      description: 'API gratuita para consulta de CEP brasileiros. Retorna endereço completo a partir do CEP.',
-      base_url: 'https://viacep.com.br/ws',
-      endpoint_path: '/{cep}/json/',
-      method: 'GET',
-      authentication_type: 'Nenhuma',
-      auth_details: null,
-      tags: 'cep,localização,brasil,endereço',
-      cors: true,
-      https: true,
-      parameters: '{"cep": "string - CEP no formato 00000000"}',
-      response_format: 'json',
-      usage_example: 'https://viacep.com.br/ws/01001000/json/',
-      pdf_url: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    },
-    {
-      id: '2',
-      name: 'OpenWeatherMap',
-      description: 'API de previsão do tempo em tempo real para qualquer cidade do mundo.',
-      base_url: 'https://api.openweathermap.org/data/2.5',
-      endpoint_path: '/weather',
-      method: 'GET',
-      authentication_type: 'API Key',
-      auth_details: '{"api_key": "sua-chave-aqui"}',
-      tags: 'clima,tempo,previsão,meteorologia',
-      cors: true,
-      https: true,
-      parameters: '{"q": "string - nome da cidade", "appid": "string - sua API key"}',
-      response_format: 'json',
-      usage_example: 'https://api.openweathermap.org/data/2.5/weather?q=São Paulo&appid=SUA_CHAVE&lang=pt&units=metric',
-      pdf_url: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    },
-    {
-      id: '3',
-      name: 'Dog CEO',
-      description: 'API de imagens aleatórias de cachorros. Perfeito para projetos divertidos.',
-      base_url: 'https://dog.ceo/api',
-      endpoint_path: '/breeds/image/random',
-      method: 'GET',
-      authentication_type: 'Nenhuma',
-      auth_details: null,
-      tags: 'animais,cachorros,imagens,divertido,pet',
-      cors: true,
-      https: true,
-      parameters: '{}',
-      response_format: 'json',
-      usage_example: 'https://dog.ceo/api/breeds/image/random',
-      pdf_url: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    },
-    {
-      id: '4',
-      name: 'Bored API',
-      description: 'Sugere atividades aleatórias para quando você está entediado.',
-      base_url: 'https://www.boredapi.com/api',
-      endpoint_path: '/activity',
-      method: 'GET',
-      authentication_type: 'Nenhuma',
-      auth_details: null,
-      tags: 'diversão,atividades,lazer,entretenimento',
-      cors: true,
-      https: true,
-      parameters: '{}',
-      response_format: 'json',
-      usage_example: 'https://www.boredapi.com/api/activity',
-      pdf_url: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    },
-    {
-      id: '5',
-      name: 'JSONPlaceholder',
-      description: 'API fake para testes e prototipação. Simula uma API REST completa.',
-      base_url: 'https://jsonplaceholder.typicode.com',
-      endpoint_path: '/posts',
-      method: 'GET',
-      authentication_type: 'Nenhuma',
-      auth_details: null,
-      tags: 'dados,teste,protótipo,desenvolvimento',
-      cors: true,
-      https: true,
-      parameters: '{}',
-      response_format: 'json',
-      usage_example: 'https://jsonplaceholder.typicode.com/posts/1',
-      pdf_url: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    },
-    {
-      id: '6',
-      name: 'CoinGecko',
-      description: 'API de criptomoedas com preços, volumes e informações do mercado.',
-      base_url: 'https://api.coingecko.com/api/v3',
-      endpoint_path: '/simple/price',
-      method: 'GET',
-      authentication_type: 'Nenhuma',
-      auth_details: null,
-      tags: 'criptomoedas,financeiro,bitcoin,investimento',
-      cors: true,
-      https: true,
-      parameters: '{"ids": "bitcoin", "vs_currencies": "usd"}',
-      response_format: 'json',
-      usage_example: 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd',
-      pdf_url: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    },
-    {
-      id: '7',
-      name: 'TheCatAPI',
-      description: 'API de imagens aleatórias de gatos com várias raças e categorias.',
-      base_url: 'https://api.thecatapi.com/v1',
-      endpoint_path: '/images/search',
-      method: 'GET',
-      authentication_type: 'Nenhuma',
-      auth_details: null,
-      tags: 'animais,gatos,imagens,pet,divertido',
-      cors: true,
-      https: true,
-      parameters: '{}',
-      response_format: 'json',
-      usage_example: 'https://api.thecatapi.com/v1/images/search',
-      pdf_url: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    },
-    {
-      id: '8',
-      name: 'NewsAPI',
-      description: 'API de notícias de várias fontes e países em tempo real.',
-      base_url: 'https://newsapi.org/v2',
-      endpoint_path: '/everything',
-      method: 'GET',
-      authentication_type: 'API Key',
-      auth_details: '{"api_key": "sua-chave-aqui"}',
-      tags: 'notícias,jornalismo,informação,atualidades',
-      cors: true,
-      https: true,
-      parameters: '{"q": "string - termo de busca", "apiKey": "string - sua chave"}',
-      response_format: 'json',
-      usage_example: 'https://newsapi.org/v2/everything?q=tecnologia&apiKey=SUA_CHAVE',
-      pdf_url: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }
-  ]
-}
-
-export async function fetchAPIBySlug(slug: string): Promise<any | null> {
+// Função para buscar API por ID
+export async function fetchAPIById(id: string): Promise<API | null> {
   try {
-    console.log('🔍 [API] Buscando por slug:', slug)
+    console.log(`🔍 [api] Buscando API por ID: ${id}`)
     
-    const response = await fetch(`${BACKEND_URL}/api-by-slug/${slug}`)
+    const response = await fetch(`${API_BASE_URL}/api/${id}`)
     
     if (!response.ok) {
-      console.log('❌ API não encontrada por slug, tentando por nome...')
-      
-      // Fallback: buscar todas e filtrar
-      const allApis = await fetchAPIs()
-      const normalizedSlug = slug.toLowerCase().replace(/-/g, ' ')
-      
-      const api = allApis.find(a => 
-        a.name.toLowerCase().includes(normalizedSlug) ||
-        a.name.toLowerCase().replace(/[^a-z0-9]/g, ' ') === normalizedSlug
-      )
-      
-      return api || null
-    }
-    
-    const data = await response.json()
-    return data
-    
-  } catch (error) {
-    console.error('❌ Erro ao buscar API por slug:', error)
-    return null
-  }
-}
-
-export async function fetchAPIById(id: string): Promise<any | null> {
-  try {
-    console.log('🔍 [API] Buscando por ID:', id)
-    
-    const response = await fetch(`${BACKEND_URL}/api/${id}`)
-    
-    if (!response.ok) {
-      console.error('❌ Erro ao buscar API por ID:', response.status)
+      console.error('❌ [api] API não encontrada:', response.status)
       return null
     }
     
-    const data = await response.json()
-    return data
+    const api = await response.json()
+    console.log(`✅ [api] API encontrada: ${api.name}`)
     
+    return api
   } catch (error) {
-    console.error('❌ Erro ao buscar API por ID:', error)
+    console.error('❌ [api] Erro ao buscar API por ID:', error)
     return null
   }
 }
 
-export async function fetchUserFavorites(userId: string): Promise<any[]> {
+// Função para buscar API por slug
+export async function fetchAPIBySlug(slug: string): Promise<API | null> {
   try {
-    console.log('⭐ [API] Buscando favoritos para usuário:', userId)
+    console.log(`🔍 [api] Buscando API por slug: ${slug}`)
     
-    const response = await fetch(`${BACKEND_URL}/favoritos/${userId}`)
+    const response = await fetch(`${API_BASE_URL}/api-by-slug/${slug}`)
     
     if (!response.ok) {
-      console.error('❌ Erro ao buscar favoritos:', response.status)
+      console.error('❌ [api] API não encontrada por slug:', response.status)
+      return null
+    }
+    
+    const api = await response.json()
+    console.log(`✅ [api] API encontrada por slug: ${api.name}`)
+    
+    return api
+  } catch (error) {
+    console.error('❌ [api] Erro ao buscar API por slug:', error)
+    return null
+  }
+}
+
+// Função para buscar APIs favoritas do usuário
+export async function fetchUserFavorites(userId: string): Promise<API[]> {
+  try {
+    console.log(`🔍 [api] Buscando favoritos do usuário: ${userId}`)
+    
+    const response = await fetch(`${API_BASE_URL}/favoritos/${userId}`)
+    
+    if (!response.ok) {
+      console.error('❌ [api] Erro ao buscar favoritos:', response.status)
       return []
     }
     
-    const data = await response.json()
-    return Array.isArray(data) ? data : []
+    const favorites = await response.json()
+    console.log(`✅ [api] ${favorites.length} favoritos encontrados`)
     
+    // Extrair as APIs dos objetos de favorito
+    const apis = favorites.map((fav: any) => fav.apis).filter(Boolean)
+    return apis
   } catch (error) {
-    console.error('❌ Erro ao buscar favoritos:', error)
+    console.error('❌ [api] Erro ao buscar favoritos:', error)
     return []
   }
 }
 
-export async function fetchCompleteFavorites(userId: string): Promise<any[]> {
-  try {
-    console.log('⭐ [API] Buscando favoritos completos para usuário:', userId)
-    
-    const response = await fetch(`${BACKEND_URL}/favoritos/${userId}`)
-    
-    if (!response.ok) {
-      console.error('❌ Erro ao buscar favoritos completos:', response.status)
-      return []
-    }
-    
-    const data = await response.json()
-    return Array.isArray(data) ? data : []
-    
-  } catch (error) {
-    console.error('❌ Erro ao buscar favoritos completos:', error)
-    return []
-  }
-}
-
+// Função para adicionar/remover favorito
 export async function toggleFavorite(userId: string, apiId: string, isFavorite: boolean): Promise<boolean> {
   try {
-    console.log('⭐ [API] Alternando favorito:', { userId, apiId, isFavorite })
+    console.log(`⭐ [api] ${isFavorite ? 'Removendo' : 'Adicionando'} favorito...`)
     
-    const endpoint = `${BACKEND_URL}/favoritos`
+    const url = `${API_BASE_URL}/favoritos`
     const method = isFavorite ? 'DELETE' : 'POST'
     
-    const response = await fetch(endpoint, {
+    const response = await fetch(url, {
       method,
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ user_id: userId, api_id: apiId })
+      body: JSON.stringify({
+        user_id: userId,
+        api_id: apiId
+      })
     })
     
     if (!response.ok) {
-      console.error('❌ Erro ao alternar favorito:', response.status)
+      console.error('❌ [api] Erro ao alterar favorito:', response.status)
       return false
     }
     
-    const data = await response.json()
-    console.log('✅ Operação de favorito realizada:', data.success)
-    
-    return data.success === true
-    
+    console.log(`✅ [api] Favorito ${isFavorite ? 'removido' : 'adicionado'}`)
+    return true
   } catch (error) {
-    console.error('❌ Erro ao alternar favorito:', error)
+    console.error('❌ [api] Erro ao alterar favorito:', error)
     return false
+  }
+}
+
+// Função para buscar estatísticas de uma API
+export async function fetchAPIStatistics(apiId: string): Promise<any> {
+  try {
+    console.log(`📊 [api] Buscando estatísticas da API: ${apiId}`)
+    
+    // Esta função depende de ter uma rota no backend
+    // Se não tiver, pode retornar dados mock ou vazio
+    return {
+      uptime: '99.9%',
+      avgResponseTime: '120ms',
+      totalTests: 1500,
+      lastTested: new Date().toISOString()
+    }
+  } catch (error) {
+    console.error('❌ [api] Erro ao buscar estatísticas:', error)
+    return null
+  }
+}
+
+// Função para buscar categorias únicas
+export async function fetchCategories(): Promise<string[]> {
+  try {
+    const apis = await fetchAPIs()
+    
+    // Extrair categorias das tags
+    const categories = Array.from(
+      new Set(
+        apis.map(api => {
+          if (!api.tags) return 'Outros'
+          
+          const commonCategories = [
+            'Clima', 'Financeiro', 'Imagens', 'Dados', 'Tradução', 
+            'Geografia', 'Redes Sociais', 'Pagamentos', 'IA', 'Educação',
+            'Animais', 'Palavras', 'Livros', 'Produtos', 'Diversão',
+            'Nomes', 'Localização', 'Fotos', 'Música', 'Jogos',
+            'Desenvolvimento', 'Email', 'Calendário', 'Análises', 'Mobile'
+          ]
+          
+          const tagList = api.tags.split(',').map(tag => tag.trim())
+          const foundCategory = commonCategories.find(category => 
+            tagList.some(tag => tag.toLowerCase().includes(category.toLowerCase()))
+          )
+          
+          return foundCategory || 'Outros'
+        })
+      )
+    )
+    
+    return categories.sort()
+  } catch (error) {
+    console.error('❌ [api] Erro ao buscar categorias:', error)
+    return ['Outros']
+  }
+}
+
+// Função para filtrar APIs
+export async function filterAPIs(filters: {
+  category?: string
+  search?: string
+  freeOnly?: boolean
+}): Promise<API[]> {
+  try {
+    const apis = await fetchAPIs()
+    
+    let filtered = apis
+    
+    // Filtrar por categoria
+    if (filters.category && filters.category !== 'Todos') {
+      filtered = filtered.filter(api => {
+        if (!api.tags) return filters.category === 'Outros'
+        
+        const commonCategories = [
+          'Clima', 'Financeiro', 'Imagens', 'Dados', 'Tradução', 
+          'Geografia', 'Redes Sociais', 'Pagamentos', 'IA', 'Educação',
+          'Animais', 'Palavras', 'Livros', 'Produtos', 'Diversão',
+          'Nomes', 'Localização', 'Fotos', 'Música', 'Jogos',
+          'Desenvolvimento', 'Email', 'Calendário', 'Análises', 'Mobile'
+        ]
+        
+        const tagList = api.tags.split(',').map(tag => tag.trim())
+        const foundCategory = commonCategories.find(category => 
+          tagList.some(tag => tag.toLowerCase().includes(category.toLowerCase()))
+        )
+        
+        const apiCategory = foundCategory || 'Outros'
+        return apiCategory === filters.category
+      })
+    }
+    
+    // Filtrar por busca
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase()
+      filtered = filtered.filter(api =>
+        api.name.toLowerCase().includes(searchLower) ||
+        api.description.toLowerCase().includes(searchLower) ||
+        api.tags.toLowerCase().includes(searchLower)
+      )
+    }
+    
+    // Filtrar por grátis apenas (baseado na presença de "free" ou "gratis" nas tags)
+    if (filters.freeOnly) {
+      filtered = filtered.filter(api =>
+        api.tags.toLowerCase().includes('free') ||
+        api.tags.toLowerCase().includes('gratis') ||
+        api.tags.toLowerCase().includes('gratuito')
+      )
+    }
+    
+    return filtered
+  } catch (error) {
+    console.error('❌ [api] Erro ao filtrar APIs:', error)
+    return []
   }
 }
