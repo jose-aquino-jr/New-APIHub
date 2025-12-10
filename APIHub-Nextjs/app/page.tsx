@@ -83,10 +83,16 @@ export default function Home() {
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
             
-            <button className="btn-secondary group flex items-center gap-3">
-              <Zap className="w-5 h-5" />
-              <span>Ver Documentação</span>
-            </button>
+            <a
+  href="/documentacao-oficial-apihub.pdf"
+  target="_blank"
+  rel="noopener noreferrer"
+  className="btn-secondary group flex items-center gap-3"
+>
+  <Zap className="w-5 h-5" />
+  <span>Ver Documentação</span>
+</a>
+
           </motion.div>
 
           {/* Stats */}
@@ -282,5 +288,6 @@ export default function Home() {
     </div>
   )
 }
+
 
 
