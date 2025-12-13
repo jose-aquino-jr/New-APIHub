@@ -16,16 +16,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     lastModified: new Date(),
   }))
 
-  // Dinâmicas (APIs)
+  // Dinâmicas
   let apis: ApiSlug[] = []
 
   try {
-    const response = await fetch('https://apihub-br.duckdns.org/public-apis-slug', {
-      next: { revalidate: 3600 }, // 1h
-    })
-    apis = await response.json()
-  } catch (error) {
-    console.error('Erro ao buscar as APIs:', error)
+    const res = await fetch(
+      'https://apihub-br.duckdns.org/public-apis-slug',
+      { next: { revalidate: 3600 } }
+    )
+
+    const json = await res.json()
+
+    if (Array.isArray(json)) {
+      apis = json
+    }
+  } catch (err) {
+    console.error('Erro ao gerar sitemap dinâmico:', err)
   }
 
   const apiUrls = apis.map(api => ({
