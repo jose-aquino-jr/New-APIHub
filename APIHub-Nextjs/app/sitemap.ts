@@ -20,7 +20,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let apis: ApiSlug[] = []
 
   try {
-    const response = await fetch('https://apihub-br.duckdns.org/public-apis-slugs', {
+    const response = await fetch('https://apihub-br.duckdns.org/public-apis-slug', {
       next: { revalidate: 3600 }, // 1h
     })
     apis = await response.json()
