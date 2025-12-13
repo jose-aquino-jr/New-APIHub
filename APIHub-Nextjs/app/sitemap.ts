@@ -17,10 +17,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }))
 
   // Dinâmicas (APIs)
-  const apis: ApiSlug[] = await fetch(
-    'https://apihub-br.duckdns.org/public-apis-slugs',
-    { next: { revalidate: 3600 } } // 1h
-  ).then(res => res.json())
+  let apis: ApiSlug[] = []
+
+  try {
+    const response = await fetch('https://apihub-br.duckdns.org/public-apis-slugs', {
+      next: { revalidate: 3600 }, // 1h
+    })
+    apis = await response.json()
+  } catch (error) {
+    console.error('Erro ao buscar as APIs:', error)
+  }
 
   const apiUrls = apis.map(api => ({
     url: `${baseUrl}/apis/${api.slug}`,
