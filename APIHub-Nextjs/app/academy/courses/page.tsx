@@ -17,7 +17,7 @@ interface Course {
   is_free: boolean
   full_price: number
   totalDurationMinutes: number
-  modules_count: number // Simplificado para contagem vinda do banco
+  modules_count: number
   instructor: string
 }
 
