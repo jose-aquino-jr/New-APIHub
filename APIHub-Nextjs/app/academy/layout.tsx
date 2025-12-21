@@ -48,9 +48,9 @@ export default function AcademyLayout({
 
   const navItems = [
     { name: 'Início', href: '/academy', icon: Home },
-    { name: 'Cursos', href: '/academy/', icon: BookOpen },
-    { name: 'Meu Progresso', href: '/academy/', icon: BarChart },
-    { name: 'Certificados', href: '/academy/', icon: Award },
+    { name: 'Cursos', href: '/academy/courses', icon: BookOpen },
+    { name: 'Meu Progresso', href: '/academy/dashboard', icon: BarChart },
+    { name: 'Certificados', href: '/academy/certificates', icon: Award },
   ]
 
   // Verifique se é admin (você pode adaptar essa lógica)
