@@ -501,7 +501,7 @@ interface APIGridProps {
   apis: API[]
   favorites: string[]
   toggleFavorite: (apiId: string) => Promise<void>
-  user: User | null
+  user: Partial<User> | null 
   isAuthenticated: boolean
 }
 
@@ -535,7 +535,7 @@ interface APICardProps {
   index: number
   isFavorited: boolean
   onToggleFavorite: () => Promise<void>
-  user: User | null
+  user: Partial<User> | null 
   isAuthenticated: boolean
 }
 
@@ -701,3 +701,4 @@ function EmptyState({ onClearFilters }: { onClearFilters: () => void }) {
     </motion.div>
   )
 }
+
