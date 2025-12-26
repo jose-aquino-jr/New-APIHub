@@ -1,3 +1,4 @@
+// app/favoritos/page.tsx
 'use client'
 
 import { motion } from 'framer-motion'
@@ -29,16 +30,18 @@ export default function Favoritos() {
 
     setIsLoading(true)
     try {
-      // Buscar informações das APIs favoritas do backend
-      const response = await fetch('https://apihub-br.duckdns.org/favoritos-completos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      // CORREÇÃO: Endpoint correto
+      const response = await fetch('https://apihub-br.duckdns.org/user-favorites', {
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({ user_id: user.id })
       })
 
       if (response.ok) {
         const data = await response.json()
-        setFavoriteApis(data || [])
+        // CORREÇÃO: Estrutura da resposta
+        setFavoriteApis(data.data?.map((fav: any) => fav.apis) || [])
       }
     } catch (error) {
       console.error('Erro ao carregar APIs favoritas:', error)
