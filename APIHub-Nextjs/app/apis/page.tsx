@@ -96,6 +96,30 @@ const CATEGORY_COLORS: { [key: string]: string } = {
 // Categorias populares adicionais
 const POPULAR_CATEGORIES = ['IA', 'Redes Sociais', 'Música', 'Localização', 'Desenvolvimento']
 
+// Função auxiliar para converter dados da API
+function convertToAPI(data: any): API {
+  return {
+    id: data.id || '',
+    name: data.name || '',
+    description: data.description || '',
+    base_url: data.base_url || '',
+    endpoint_path: data.endpoint_path || '',
+    method: (data.method || 'GET') as 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+    authentication_type: data.authentication_type || 'none',
+    auth_details: data.auth_details || null,
+    tags: data.tags || '',
+    created_by: data.created_by || '',
+    created_at: data.created_at || new Date().toISOString(),
+    updated_at: data.updated_at || new Date().toISOString(),
+    cors: Boolean(data.cors),
+    https: Boolean(data.https),
+    parameters: data.parameters || '',
+    response_format: data.response_format || '',
+    usage_example: data.usage_example || '',
+    pdf_url: data.pdf_url || ''
+  }
+}
+
 export default function APICatalog() {
   const [apis, setApis] = useState<API[]>([])
   const [filteredApis, setFilteredApis] = useState<API[]>([])
@@ -116,9 +140,15 @@ export default function APICatalog() {
   const loadAPIs = async () => {
     try {
       const data = await fetchAPIs()
-      setApis(data || [])
       
-      const allCategories = data?.map(api => getCategoryFromTags(api.tags)) || []
+      // Converter os dados para o tipo API
+      const typedData: API[] = Array.isArray(data) 
+        ? data.map(convertToAPI)
+        : []
+      
+      setApis(typedData)
+      
+      const allCategories = typedData.map(api => getCategoryFromTags(api.tags)) || []
       const uniqueCategories = Array.from(new Set(allCategories)).filter(Boolean)
       
       // Combinar categorias existentes com as populares
@@ -126,6 +156,7 @@ export default function APICatalog() {
       setCategories(['all', ...allUniqueCategories])
     } catch (error) {
       console.error('Erro ao carregar APIs:', error)
+      setApis([])
     } finally {
       setIsLoading(false)
     }
