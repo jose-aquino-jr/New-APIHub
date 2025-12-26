@@ -15,6 +15,7 @@ interface AuthContextType {
   loading: boolean
   favorites: string[]
   login: (email: string, password: string) => Promise<{ error: Error | null }>
+  register: (email: string, password: string, name: string, acceptTerms: boolean) => Promise<{ error: Error | null }>
   logout: () => void
   toggleFavorite: (apiId: string) => Promise<void>
   isAuthenticated: boolean
@@ -83,6 +84,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: new Error(data.message || 'Erro no login') }
     } catch (error) {
       return { error: new Error('Erro de conexão') }
+    }
+  }
+
+  const register = async (email: string, password: string, name: string, acceptTerms: boolean) => {
+    try {
+      console.log('📝 Tentando registrar usuário:', { email, name })
+      
+      const response = await fetch('https://apihub-br.duckdns.org/register', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify({ 
+          nome: name,
+          email: email.trim().toLowerCase(), 
+          senha: password,
+          aceitou_termos: acceptTerms
+        })
+      })
+      
+      const data = await response.json()
+      console.log('📝 Resposta do registro:', data)
+      
+      if (response.ok && data.success) {
+        // Automaticamente fazer login após o registro
+        const loginResult = await login(email, password)
+        
+        if (loginResult.error) {
+          // Se o login automático falhar, pelo menos o usuário foi criado
+          return { error: null }
+        }
+        
+        return { error: null }
+      }
+      
+      // Se houver erro
+      const errorMessage = data.message || 'Erro no registro'
+      console.error('❌ Erro no registro:', errorMessage)
+      return { error: new Error(errorMessage) }
+      
+    } catch (error: any) {
+      console.error('❌ Erro de conexão no registro:', error)
+      return { error: new Error('Erro de conexão com o servidor') }
     }
   }
 
@@ -181,6 +225,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading,
     favorites,
     login,
+    register, // ← ADICIONADO AQUI
     logout,
     toggleFavorite,
     isAuthenticated: !!user,
