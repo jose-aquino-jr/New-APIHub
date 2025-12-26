@@ -1,6 +1,7 @@
 // lib/api.ts
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://apihub-br.duckdns.org'
 
+// lib/api.ts - Atualize a interface API:
 export interface API {
   id: string
   name: string
@@ -19,6 +20,9 @@ export interface API {
   pdf_url?: string
   created_at: string
   updated_at: string
+  auth_details?: any
+  created_by?: string
+  status?: string
 }
 
 export interface User {
@@ -251,3 +255,4 @@ export async function fetchAPIById(apiId: string): Promise<API | null> {
     return null
   }
 }
+
