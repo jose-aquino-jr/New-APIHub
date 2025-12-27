@@ -1,3 +1,4 @@
+
 'use client'
 
 import { motion } from 'framer-motion'
@@ -83,10 +84,10 @@ export default function Home() {
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
             
-            <button className="btn-secondary group flex items-center gap-3">
+            <Link href="/documentacao-oficial-apihub.pdf"className="btn-secondary group flex items-center gap-3">
               <Zap className="w-5 h-5" />
               <span>Ver Documentação</span>
-            </button>
+            </Link>
           </motion.div>
 
           {/* Stats */}

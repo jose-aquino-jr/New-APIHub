@@ -90,16 +90,6 @@ export default function Configuracoes() {
                   title: "Newsletter", 
                   description: "Receber novidades por email"
                 },
-                {
-                  icon: Globe,
-                  title: "Idioma",
-                  description: "Português Brasileiro"
-                },
-                {
-                  icon: Moon, 
-                  title: "Tema",
-                  description: "Modo claro"
-                }
               ].map((item, index) => (
                 <div key={item.title} className="flex items-center justify-between py-3 border-b border-gray-200 last:border-0">
                   <div className="flex items-center gap-3">

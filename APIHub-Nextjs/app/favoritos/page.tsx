@@ -30,17 +30,15 @@ export default function Favoritos() {
 
     setIsLoading(true)
     try {
-      // CORREÇÃO: Endpoint correto
-      const response = await fetch('https://apihub-br.duckdns.org/user-favorites', {
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ user_id: user.id })
-      })
+      const response = await fetch(`https://apihub-br.duckdns.org/user-favorites?user_id=${user.id}`, {
+  headers: {
+    'Content-Type': 'application/json'
+  }
+})
+
 
       if (response.ok) {
         const data = await response.json()
-        // CORREÇÃO: Estrutura da resposta
         setFavoriteApis(data.data?.map((fav: any) => fav.apis) || [])
       }
     } catch (error) {

@@ -8,6 +8,7 @@ interface User {
   id: string
   email: string
   name: string
+  accept_terms?: boolean
 }
 
 interface AuthContextType {
@@ -31,124 +32,154 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
-    // Verificar se há usuário salvo
-    const savedUser = localStorage.getItem('apihub_user')
-    if (savedUser) {
-      try {
+    checkAuth()
+  }, [])
+
+  const checkAuth = async () => {
+    try {
+      const savedUser = localStorage.getItem('apihub_user')
+      const token = localStorage.getItem('authToken')
+      
+      if (savedUser && token) {
         const userData = JSON.parse(savedUser)
         setUser(userData)
         
-        // Carregar favoritos do localStorage
+        // Carregar favoritos
         const savedFavorites = localStorage.getItem(`favorites_${userData.id}`)
         if (savedFavorites) {
           setFavorites(JSON.parse(savedFavorites))
         }
-      } catch (error) {
-        localStorage.removeItem('apihub_user')
       }
-    }
-    setLoading(false)
-  }, [])
-
-  const login = async (email: string, password: string) => {
-    try {
-      const response = await fetch('https://apihub-br.duckdns.org/login', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json' 
-        },
-        body: JSON.stringify({ 
-          email: email.trim().toLowerCase(), 
-          senha: password 
-        })
-      })
-      
-      const data = await response.json()
-      
-      if (response.ok && data.success) {
-        const userData = data.user
-        
-        // Salvar token se existir
-        if (data.session?.access_token) {
-          localStorage.setItem('authToken', data.session.access_token)
-        }
-        
-        setUser(userData)
-        localStorage.setItem('apihub_user', JSON.stringify(userData))
-        
-        // Carregar favoritos do backend
-        await loadFavoritesFromBackend(userData.id)
-        
-        return { error: null }
-      }
-      return { error: new Error(data.message || 'Erro no login') }
     } catch (error) {
-      return { error: new Error('Erro de conexão') }
+      console.error('Erro ao verificar autenticação:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
-  const register = async (email: string, password: string, name: string, acceptTerms: boolean) => {
-    try {
-      console.log('📝 Tentando registrar usuário:', { email, name })
-      
-      const response = await fetch('https://apihub-br.duckdns.org/register', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json' 
-        },
-        body: JSON.stringify({ 
-          nome: name,
-          email: email.trim().toLowerCase(), 
-          senha: password,
-          aceitou_termos: acceptTerms
-        })
+  // components/AuthProvider.tsx - função login CORRIGIDA
+const login = async (email: string, password: string) => {
+  try {
+    console.log('🔐 Tentando login:', email)
+    
+    const response = await fetch('https://apihub-br.duckdns.org/login', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json' 
+      },
+      body: JSON.stringify({ 
+        email: email.trim().toLowerCase(), 
+        senha: password 
       })
-      
-      const data = await response.json()
-      console.log('📝 Resposta do registro:', data)
-      
-      if (response.ok && data.success) {
-        // Automaticamente fazer login após o registro
-        const loginResult = await login(email, password)
-        
-        if (loginResult.error) {
-          // Se o login automático falhar, pelo menos o usuário foi criado
-          return { error: null }
-        }
-        
-        return { error: null }
+    })
+    
+    const result = await response.json()
+    console.log('🔐 Resposta COMPLETA do login:', result)
+    
+    if (response.ok && result.success) {
+      // AGORA os dados estão em result.data
+      const userData = {
+        id: result.data?.user?.id,
+        email: result.data?.user?.email || email,
+        name: result.data?.user?.name || 'Usuário',
+        accept_terms: result.data?.user?.accept_terms
       }
       
-      // Se houver erro
-      const errorMessage = data.message || 'Erro no registro'
-      console.error('❌ Erro no registro:', errorMessage)
-      return { error: new Error(errorMessage) }
+      // Salvar token e dados do usuário
+      if (result.data?.session?.access_token) {
+        localStorage.setItem('authToken', result.data.session.access_token)
+      }
+      if (result.data?.session?.refresh_token) {
+        localStorage.setItem('refreshToken', result.data.session.refresh_token)
+      }
       
-    } catch (error: any) {
-      console.error('❌ Erro de conexão no registro:', error)
-      return { error: new Error('Erro de conexão com o servidor') }
+      localStorage.setItem('apihub_user', JSON.stringify(userData))
+      setUser(userData)
+      
+      // Carregar favoritos
+      await loadFavoritesFromBackend(userData.id)
+      
+      return { error: null }
+    }
+    
+    return { 
+      error: new Error(result.message || 'Email ou senha incorretos') 
+    }
+  } catch (error: any) {
+    console.error('❌ Erro de conexão no login:', error)
+    return { 
+      error: new Error('Erro de conexão com o servidor. Tente novamente.') 
     }
   }
+}
+
+  // components/AuthProvider.tsx - função register CORRIGIDA
+const register = async (email: string, password: string, name: string, acceptTerms: boolean) => {
+  try {
+    console.log('📝 Tentando registrar usuário:', { email, name, acceptTerms })
+    
+    const response = await fetch('https://apihub-br.duckdns.org/cadastro', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json' 
+      },
+      body: JSON.stringify({ 
+        email: email.trim().toLowerCase(), 
+        senha: password,
+        name: name.trim(),
+        aceitou_termos: acceptTerms
+      })
+    })
+    
+    const data = await response.json()
+    console.log('📝 Resposta COMPLETA do registro:', data)
+    
+    if (response.ok && data.success) {
+      // NÃO salvar nada no localStorage aqui
+      // Só retornar sucesso
+      return { error: null }
+    }
+    
+    const errorMessage = data.message || 'Erro no registro'
+    console.error('❌ Erro no registro:', errorMessage)
+    
+    // Mapear erros comuns
+    if (errorMessage.includes('já existe') || errorMessage.includes('already')) {
+      return { error: new Error('Este email já está cadastrado') }
+    }
+    
+    return { error: new Error(errorMessage) }
+    
+  } catch (error: any) {
+    console.error('❌ Erro de conexão no registro:', error)
+    return { 
+      error: new Error('Erro de conexão com o servidor. Verifique sua internet.') 
+    }
+  }
+}
 
   const loadFavoritesFromBackend = async (userId: string) => {
     try {
-      const response = await fetch(`https://apihub-br.duckdns.org/user-favorites?user_id=${userId}`)
+      const response = await fetch(
+        `https://apihub-br.duckdns.org/user-favorites?user_id=${userId}`
+      )
       
       if (response.ok) {
         const data = await response.json()
-        const favoriteIds = data.data?.map((fav: any) => fav.api_id) || []
-        
-        setFavorites(favoriteIds)
-        localStorage.setItem(`favorites_${userId}`, JSON.stringify(favoriteIds))
+        if (data.success) {
+          const favoriteIds = data.data?.map((fav: any) => fav.api_id) || []
+          
+          setFavorites(favoriteIds)
+          localStorage.setItem(`favorites_${userId}`, JSON.stringify(favoriteIds))
+        }
       }
     } catch (error) {
-      console.error('Erro ao carregar favoritos do backend:', error)
+      console.error('Erro ao carregar favoritos:', error)
     }
   }
 
   const loadFavorites = async () => {
     if (!user) return
-    
     await loadFavoritesFromBackend(user.id)
   }
 
@@ -211,12 +242,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setFavorites([])
     localStorage.removeItem('apihub_user')
     localStorage.removeItem('authToken')
+    localStorage.removeItem('refreshToken')
+    
     // Limpar todos os favoritos do localStorage
     Object.keys(localStorage).forEach(key => {
       if (key.startsWith('favorites_')) {
         localStorage.removeItem(key)
       }
     })
+    
     router.push('/')
   }
 
@@ -225,7 +259,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading,
     favorites,
     login,
-    register, // ← ADICIONADO AQUI
+    register,
     logout,
     toggleFavorite,
     isAuthenticated: !!user,

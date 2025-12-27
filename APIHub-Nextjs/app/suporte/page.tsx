@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { Mail, MessageCircle, Github, FileText, ArrowRight } from 'lucide-react'
+import Link from 'next/link';
 
 export default function Suporte() {
   return (
@@ -116,10 +117,13 @@ export default function Suporte() {
           <p className="text-gray-600 mb-6 max-w-md mx-auto">
             Acesse nossa documentação detalhada com guias de integração e exemplos
           </p>
-          <button className="btn-primary inline-flex items-center gap-2">
-            <span>Ver Documentação</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
+           <Link href="/documentacao-oficial-apihub.pdf" passHref>
+  <p className="btn-primary inline-flex items-center gap-2">
+    <span>Ver Documentação</span>
+    <ArrowRight className="w-4 h-4" />
+    </p>
+</Link>
+
         </motion.div>
       </div>
     </div>
