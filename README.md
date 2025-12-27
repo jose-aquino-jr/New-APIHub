@@ -1,17 +1,57 @@
-⚡ Domine o Poder das APIs
-<div align="center" class="container"> <div class="header"> <h1 class="main-title">DOMINE O PODER DAS APIs</h1> <p class="subtitle">Descubra e integre APIs gratuitas em uma plataforma <span class="highlight">feita para desenvolvedores de verdade</span></p> </div> <div class="cta-buttons"> <a href="#" class="btn btn-primary"> <span class="btn-icon">🚀</span> Explorar Catálogo </a> <a href="#" class="btn btn-secondary"> <span class="btn-icon">📚</span> Ver Documentação </a> </div> <div class="stats-container"> <div class="stat-item"> <div class="stat-circle gradient-1"> <span class="stat-number">10+</span> </div> <h3 class="stat-label">APIs Disponíveis</h3> </div>
-text
-<div class="stat-item">
-  <div class="stat-circle gradient-2">
-    <span class="stat-number">15+</span>
-  </div>
-  <h3 class="stat-label">Categorias</h3>
+# Domine o Poder das APIs
+
+Descubra e integre APIs gratuitas em uma plataforma **feita para desenvolvedores de verdade**
+
+<div align="center">
+  <a href="#">
+    <img src="https://img.shields.io/badge/Explorar_Catálogo-667eea?style=for-the-badge&logo=rocket&logoColor=white" alt="Explorar Catálogo" />
+  </a>
+  <a href="#">
+    <img src="https://img.shields.io/badge/Ver_Documentação-764ba2?style=for-the-badge&logo=book&logoColor=white" alt="Ver Documentação" />
+  </a>
 </div>
 
-<div class="stat-item">
-  <div class="stat-circle gradient-3">
-    <span class="stat-number">1+</span>
+---
+
+<div align="center">
+  <div style="display: flex; justify-content: center; gap: 3rem; margin: 3rem 0;">
+    <div style="text-align: center;">
+      <div style="font-size: 2.5rem; font-weight: bold; color: #667eea;">10+</div>
+      <div style="color: #666; margin-top: 0.5rem;">APIs Disponíveis</div>
+    </div>
+    <div style="text-align: center;">
+      <div style="font-size: 2.5rem; font-weight: bold; color: #764ba2;">15+</div>
+      <div style="color: #666; margin-top: 0.5rem;">Categorias</div>
+    </div>
+    <div style="text-align: center;">
+      <div style="font-size: 2.5rem; font-weight: bold; color: #9d50bb;">1+</div>
+      <div style="color: #666; margin-top: 0.5rem;">Desenvolvedores</div>
+    </div>
   </div>
-  <h3 class="stat-label">Desenvolvedores</h3>
 </div>
-</div> <div class="features-section"> <h2 class="features-title">✨ Experiência de Desenvolvedor de Primeira</h2> <div class="features-grid"> <div class="feature-pill"> <span class="feature-icon">⚡</span> Setup Rápido </div> <div class="feature-pill"> <span class="feature-icon">📚</span> Docs Claras </div> <div class="feature-pill"> <span class="feature-icon">🚀</span> Alta Performance </div> <div class="feature-pill"> <span class="feature-icon">🎨</span> Design Intuitivo </div> </div> </div> <div class="footer"> <p class="love">Feito com <span class="heart">❤️</span> para a comunidade de desenvolvedores</p> </div> </div><style> @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap'); :root { --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%); --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); --purple-gradient: linear-gradient(135deg, #9d50bb 0%, #6e48aa 100%); --pink-gradient: linear-gradient(135deg, #ff6b6b 0%, #ffa8a8 100%); --blue-gradient: linear-gradient(135deg, #48c6ef 0%, #6f86d6 100%); --shadow: 0 20px 40px rgba(0, 0, 0, 0.1); --shadow-hover: 0 30px 60px rgba(0, 0, 0, 0.15); --radius: 20px; } * { margin: 0; padding: 0; box-sizing: border-box; } body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; } .container { max-width: 1200px; width: 100%; background: white; border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; padding: 60px 40px; } .header { text-align: center; margin-bottom: 60px; } .main-title { background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 3.5rem; font-weight: 800; margin-bottom: 20px; letter-spacing: -0.5px; } .subtitle { font-size: 1.4rem; color: #666; line-height: 1.6; max-width: 600px; margin: 0 auto; } .highlight { font-weight: 700; color: #764ba2; position: relative; } .highlight::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 100%; height: 3px; background: var(--pink-gradient); border-radius: 2px; } .cta-buttons { display: flex; gap: 20px; justify-content: center; margin-bottom: 80px; flex-wrap: wrap; } .btn { padding: 18px 36px; font-size: 1.1rem; font-weight: 600; border-radius: 50px; text-decoration: none; display: inline-flex; align-items: center; gap: 12px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: none; cursor: pointer; box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1); } .btn-primary { background: var(--primary-gradient); color: white; } .btn-secondary { background: var(--accent-gradient); color: white; } .btn:hover { transform: translateY(-5px); box-shadow: var(--shadow-hover); } .btn-icon { font-size: 1.4rem; } .stats-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 40px; margin-bottom: 80px; } .stat-item { text-align: center; padding: 20px; transition: transform 0.3s ease; } .stat-item:hover { transform: translateY(-10px); } .stat-circle { width: 180px; height: 180px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 25px; box-shadow: var(--shadow); position: relative; overflow: hidden; } .stat-circle::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: inherit; filter: blur(20px); opacity: 0.7; z-index: -1; } .gradient-1 { background: var(--pink-gradient); } .gradient-2 { background: var(--blue-gradient); } .gradient-3 { background: var(--purple-gradient); } .stat-number { font-size: 4rem; font-weight: 800; color: white; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); } .stat-label { font-size: 1.3rem; color: #333; font-weight: 600; } .features-section { text-align: center; margin-bottom: 60px; } .features-title { font-size: 1.8rem; color: #333; margin-bottom: 40px; font-weight: 700; } .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; max-width: 800px; margin: 0 auto; } .feature-pill { background: white; padding: 20px; border-radius: 50px; display: flex; align-items: center; justify-content: center; gap: 12px; font-weight: 600; color: #555; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08); transition: all 0.3s ease; border: 2px solid transparent; } .feature-pill:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12); border-color: #764ba2; } .feature-icon { font-size: 1.4rem; } .footer { text-align: center; padding-top: 40px; border-top: 2px solid #f0f0f0; } .love { font-size: 1.1rem; color: #666; display: flex; align-items: center; justify-content: center; gap: 8px; } .heart { color: #ff4757; animation: heartbeat 1.5s ease-in-out infinite; } @keyframes heartbeat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2); } } @media (max-width: 768px) { .container { padding: 40px 20px; } .main-title { font-size: 2.5rem; } .subtitle { font-size: 1.2rem; } .stat-circle { width: 140px; height: 140px; } .stat-number { font-size: 3rem; } .features-grid { grid-template-columns: 1fr; } .btn { padding: 16px 28px; width: 100%; justify-content: center; } } @media (max-width: 480px) { .main-title { font-size: 2rem; } .stats-container { grid-template-columns: 1fr; } } </style>
+
+---
+
+<div align="center" style="margin: 2rem 0;">
+  <h3 style="color: #333;">Experiência de Desenvolvedor de Primeira</h3>
+  <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-top: 1rem;">
+    <span style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); padding: 0.5rem 1.5rem; border-radius: 20px; color: #333;">
+      Setup Rápido
+    </span>
+    <span style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); padding: 0.5rem 1.5rem; border-radius: 20px; color: #333;">
+      Docs Claras
+    </span>
+    <span style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); padding: 0.5rem 1.5rem; border-radius: 20px; color: #333;">
+      Alta Performance
+    </span>
+    <span style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); padding: 0.5rem 1.5rem; border-radius: 20px; color: #333;">
+      Design Intuitivo
+    </span>
+  </div>
+</div>
+
+<div align="center" style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid #eaeaea;">
+  <p style="color: #666;">
+    Feito com ❤️ para a comunidade de desenvolvedores
+  </p>
+</div>
