@@ -96,6 +96,30 @@ const CATEGORY_COLORS: { [key: string]: string } = {
 // Categorias populares adicionais
 const POPULAR_CATEGORIES = ['IA', 'Redes Sociais', 'Música', 'Localização', 'Desenvolvimento']
 
+// Função auxiliar para converter dados da API
+function convertToAPI(data: any): API {
+  return {
+    id: data.id || '',
+    name: data.name || '',
+    description: data.description || '',
+    base_url: data.base_url || '',
+    endpoint_path: data.endpoint_path || '',
+    method: (data.method || 'GET') as 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+    authentication_type: data.authentication_type || 'none',
+    auth_details: data.auth_details || null,
+    tags: data.tags || '',
+    created_by: data.created_by || '',
+    created_at: data.created_at || new Date().toISOString(),
+    updated_at: data.updated_at || new Date().toISOString(),
+    cors: Boolean(data.cors),
+    https: Boolean(data.https),
+    parameters: data.parameters || '',
+    response_format: data.response_format || '',
+    usage_example: data.usage_example || '',
+    pdf_url: data.pdf_url || ''
+  }
+}
+
 export default function APICatalog() {
   const [apis, setApis] = useState<API[]>([])
   const [filteredApis, setFilteredApis] = useState<API[]>([])
@@ -103,7 +127,7 @@ export default function APICatalog() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [categories, setCategories] = useState<string[]>([])
-  const { user, favorites, toggleFavorite } = useAuth()
+  const { user, favorites, toggleFavorite, isAuthenticated } = useAuth()
 
   useEffect(() => {
     loadAPIs()
@@ -116,9 +140,15 @@ export default function APICatalog() {
   const loadAPIs = async () => {
     try {
       const data = await fetchAPIs()
-      setApis(data || [])
       
-      const allCategories = data?.map(api => getCategoryFromTags(api.tags)) || []
+      // Converter os dados para o tipo API
+      const typedData: API[] = Array.isArray(data) 
+        ? data.map(convertToAPI)
+        : []
+      
+      setApis(typedData)
+      
+      const allCategories = typedData.map(api => getCategoryFromTags(api.tags)) || []
       const uniqueCategories = Array.from(new Set(allCategories)).filter(Boolean)
       
       // Combinar categorias existentes com as populares
@@ -126,6 +156,7 @@ export default function APICatalog() {
       setCategories(['all', ...allUniqueCategories])
     } catch (error) {
       console.error('Erro ao carregar APIs:', error)
+      setApis([])
     } finally {
       setIsLoading(false)
     }
@@ -330,6 +361,7 @@ export default function APICatalog() {
           favorites={favorites}
           toggleFavorite={toggleFavorite}
           user={user}
+          isAuthenticated={isAuthenticated}
         />
 
         {/* Empty State */}
@@ -468,11 +500,12 @@ function LoadingSkeleton() {
 interface APIGridProps {
   apis: API[]
   favorites: string[]
-  toggleFavorite: (apiId: string) => void
-  user: User | null
+  toggleFavorite: (apiId: string) => Promise<void>
+  user: Partial<User> | null 
+  isAuthenticated: boolean
 }
 
-function APIGrid({ apis, favorites, toggleFavorite, user }: APIGridProps) {
+function APIGrid({ apis, favorites, toggleFavorite, user, isAuthenticated }: APIGridProps) {
   if (apis.length === 0) return null
 
   return (
@@ -490,6 +523,7 @@ function APIGrid({ apis, favorites, toggleFavorite, user }: APIGridProps) {
           isFavorited={favorites.includes(api.id)}
           onToggleFavorite={() => toggleFavorite(api.id)}
           user={user}
+          isAuthenticated={isAuthenticated}
         />
       ))}
     </motion.div>
@@ -500,12 +534,20 @@ interface APICardProps {
   api: API
   index: number
   isFavorited: boolean
-  onToggleFavorite: () => void
-  user: User | null
+  onToggleFavorite: () => Promise<void>
+  user: Partial<User> | null 
+  isAuthenticated: boolean
 }
 
-function APICard({ api, index, isFavorited, onToggleFavorite, user }: APICardProps) {
+function APICard({ api, index, isFavorited, onToggleFavorite, user, isAuthenticated }: APICardProps) {
+  const [isLoading, setIsLoading] = useState(false)
+  const [favoriteState, setFavoriteState] = useState(isFavorited)
   const category = getCategoryFromTags(api.tags)
+
+  // Sincroniza o estado local com as props
+  useEffect(() => {
+    setFavoriteState(isFavorited)
+  }, [isFavorited])
 
   const getCategoryColor = (cat: string) => {
     const colors = {
@@ -537,6 +579,37 @@ function APICard({ api, index, isFavorited, onToggleFavorite, user }: APICardPro
     return colors[cat as keyof typeof colors] || colors.default
   }
 
+  const handleFavoriteClick = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+    
+    if (!isAuthenticated) {
+      alert('Faça login para adicionar aos favoritos')
+      return
+    }
+    
+    if (!user) {
+      alert('Sessão expirada. Por favor, faça login novamente.')
+      return
+    }
+    
+    setIsLoading(true)
+    try {
+      // Atualiza o estado local imediatamente para feedback visual
+      setFavoriteState(!favoriteState)
+      
+      // Chama a função do AuthProvider
+      await onToggleFavorite()
+    } catch (error) {
+      console.error('Erro ao favoritar:', error)
+      // Reverte o estado se houver erro
+      setFavoriteState(!favoriteState)
+      alert('Erro ao favoritar/desfavoritar API')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -553,21 +626,22 @@ function APICard({ api, index, isFavorited, onToggleFavorite, user }: APICardPro
             {category}
           </span>
           
-          {user && (
-            <button 
-              onClick={(e) => {
-                e.stopPropagation()
-                onToggleFavorite()
-              }}
-              className={`p-2 rounded-lg transition-all duration-200 transform hover:scale-110 ${
-                isFavorited 
-                  ? 'bg-orange-50 text-orange-500 shadow-sm' 
-                  : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-orange-400'
-              }`}
-            >
-              <Star className={`w-4 h-4 ${isFavorited ? 'fill-current' : ''}`} />
-            </button>
-          )}
+          <button 
+            onClick={handleFavoriteClick}
+            disabled={isLoading}
+            className={`p-2 rounded-lg transition-all duration-200 transform hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed ${
+              favoriteState 
+                ? 'bg-orange-50 text-orange-500 shadow-sm hover:bg-orange-100' 
+                : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-orange-400'
+            }`}
+            title={favoriteState ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+          >
+            {isLoading ? (
+              <div className="w-4 h-4 border-2 border-gray-300 border-t-orange-500 rounded-full animate-spin" />
+            ) : (
+              <Star className={`w-4 h-4 ${favoriteState ? 'fill-orange-500' : 'fill-none'}`} />
+            )}
+          </button>
         </div>
 
         <h3 className="text-xl font-semibold text-gray-800 mb-3 group-hover:text-blue-600 transition-colors duration-200 line-clamp-2 leading-tight">
@@ -627,3 +701,5 @@ function EmptyState({ onClearFilters }: { onClearFilters: () => void }) {
     </motion.div>
   )
 }
+
+

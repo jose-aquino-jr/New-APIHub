@@ -1,94 +1,138 @@
-// lib/api.ts
-import type { API } from '@/types'
-
-const API_BASE_URL = 'https://apihub-br.duckdns.org'
+// lib/api.ts 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://apihub-br.duckdns.org'
 
 // Função para buscar todas as APIs
-export async function fetchAPIs(): Promise<API[]> {
+export async function fetchAPIs(): Promise<any[]> {
   try {
-    console.log('🔍 [api] Buscando todas as APIs...')
+    console.log(' [api] Buscando APIs...')
     
     const response = await fetch(`${API_BASE_URL}/apis`)
     
     if (!response.ok) {
-      console.error('❌ [api] Erro ao buscar APIs:', response.status)
+      console.error(' [api] Erro ao buscar APIs:', response.status)
       return []
     }
     
-    const apis = await response.json()
-    console.log(`✅ [api] ${apis.length} APIs carregadas`)
+    const data = await response.json()
+    console.log(` [api] ${data.data?.length || 0} APIs encontradas`)
     
-    return apis
+    return data.data || data || []
   } catch (error) {
-    console.error('❌ [api] Erro de rede:', error)
+    console.error(' [api] Erro ao buscar APIs:', error)
     return []
   }
 }
 
-// Função para buscar API por ID
-export async function fetchAPIById(id: string): Promise<API | null> {
-  try {
-    console.log(`🔍 [api] Buscando API por ID: ${id}`)
-    
-    const response = await fetch(`${API_BASE_URL}/api/${id}`)
-    
-    if (!response.ok) {
-      console.error('❌ [api] API não encontrada:', response.status)
-      return null
-    }
-    
-    const api = await response.json()
-    console.log(`✅ [api] API encontrada: ${api.name}`)
-    
-    return api
-  } catch (error) {
-    console.error('❌ [api] Erro ao buscar API por ID:', error)
-    return null
-  }
-}
-
 // Função para buscar API por slug
-export async function fetchAPIBySlug(slug: string): Promise<API | null> {
+export async function fetchAPIBySlug(slug: string): Promise<any | null> {
   try {
-    console.log(`🔍 [api] Buscando API por slug: ${slug}`)
+    console.log(` [api] Buscando API por slug: ${slug}`)
     
     const response = await fetch(`${API_BASE_URL}/api-by-slug/${slug}`)
     
     if (!response.ok) {
-      console.error('❌ [api] API não encontrada por slug:', response.status)
+      console.error(' [api] Erro ao buscar API:', response.status)
       return null
     }
     
-    const api = await response.json()
-    console.log(`✅ [api] API encontrada por slug: ${api.name}`)
+    const data = await response.json()
+    console.log(' [api] API encontrada:', data.data?.name)
     
-    return api
+    return data.data || null
   } catch (error) {
-    console.error('❌ [api] Erro ao buscar API por slug:', error)
+    console.error(' [api] Erro ao buscar API:', error)
     return null
   }
 }
 
-// Função para buscar APIs favoritas do usuário
-export async function fetchUserFavorites(userId: string): Promise<API[]> {
+// Função para buscar APIs por categoria
+export async function fetchAPIsByCategory(category: string): Promise<any[]> {
   try {
-    console.log(`🔍 [api] Buscando favoritos do usuário: ${userId}`)
+    console.log(` [api] Buscando APIs da categoria: ${category}`)
     
-    const response = await fetch(`${API_BASE_URL}/favoritos/${userId}`)
+    const allAPIs = await fetchAPIs()
     
-    if (!response.ok) {
-      console.error('❌ [api] Erro ao buscar favoritos:', response.status)
+    const filteredAPIs = allAPIs.filter((api: any) => {
+      const categories = api.tags?.toLowerCase().split(',') || []
+      return categories.some((cat: string) => cat.trim().includes(category.toLowerCase()))
+    })
+    
+    console.log(` [api] ${filteredAPIs.length} APIs encontradas na categoria ${category}`)
+    
+    return filteredAPIs
+  } catch (error) {
+    console.error(' [api] Erro ao buscar APIs por categoria:', error)
+    return []
+  }
+}
+
+// Função para buscar APIs por nome ou descrição
+export async function searchAPIs(query: string): Promise<any[]> {
+  try {
+    console.log(` [api] Buscando APIs com query: ${query}`)
+    
+    const allAPIs = await fetchAPIs()
+    
+    const filteredAPIs = allAPIs.filter((api: any) => {
+      const searchString = `${api.name || ''} ${api.description || ''} ${api.tags || ''}`.toLowerCase()
+      return searchString.includes(query.toLowerCase())
+    })
+    
+    console.log(` [api] ${filteredAPIs.length} APIs encontradas para "${query}"`)
+    
+    return filteredAPIs
+  } catch (error) {
+    console.error(' [api] Erro ao buscar APIs:', error)
+    return []
+  }
+}
+
+function getAuthHeader(): HeadersInit {
+  const token = typeof window !== 'undefined' 
+    ? localStorage.getItem('authToken') 
+    : null
+  
+  if (token) {
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  }
+  
+  return {
+    'Content-Type': 'application/json'
+  }
+}
+
+// Função para buscar APIs favoritas do usuário
+export async function fetchUserFavorites(userId: string): Promise<any[]> {
+  try {
+    console.log(` [api] Buscando favoritos do usuário: ${userId}`)
+    
+    const response = await fetch(`${API_BASE_URL}/user-favorites?user_id=${userId}`, {
+      headers: getAuthHeader()
+    })
+    
+    if (response.status === 401) {
+      console.error(' [api] Não autorizado - token inválido ou expirado')
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('authToken')
+      }
       return []
     }
     
-    const favorites = await response.json()
-    console.log(`✅ [api] ${favorites.length} favoritos encontrados`)
+    if (!response.ok) {
+      console.error(' [api] Erro ao buscar favoritos:', response.status)
+      return []
+    }
     
-    // Extrair as APIs dos objetos de favorito
-    const apis = favorites.map((fav: any) => fav.apis).filter(Boolean)
+    const data = await response.json()
+    console.log(` [api] ${data.data?.length || 0} favoritos encontrados`)
+    
+    const apis = data.data?.map((fav: any) => fav.apis).filter(Boolean) || []
     return apis
   } catch (error) {
-    console.error('❌ [api] Erro ao buscar favoritos:', error)
+    console.error(' [api] Erro ao buscar favoritos:', error)
     return []
   }
 }
@@ -96,146 +140,83 @@ export async function fetchUserFavorites(userId: string): Promise<API[]> {
 // Função para adicionar/remover favorito
 export async function toggleFavorite(userId: string, apiId: string, isFavorite: boolean): Promise<boolean> {
   try {
-    console.log(`⭐ [api] ${isFavorite ? 'Removendo' : 'Adicionando'} favorito...`)
+    console.log(` [api] ${isFavorite ? 'Removendo' : 'Adicionando'} favorito...`)
     
-    const url = `${API_BASE_URL}/favoritos`
-    const method = isFavorite ? 'DELETE' : 'POST'
+    const url = isFavorite 
+      ? `${API_BASE_URL}/user-favorites?user_id=${userId}&api_id=${apiId}`
+      : `${API_BASE_URL}/user-favorites`
     
     const response = await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+      method: isFavorite ? 'DELETE' : 'POST',
+      headers: getAuthHeader(),
+      body: !isFavorite ? JSON.stringify({
         user_id: userId,
         api_id: apiId
-      })
+      }) : undefined
     })
     
-    if (!response.ok) {
-      console.error('❌ [api] Erro ao alterar favorito:', response.status)
+    if (response.status === 401) {
+      console.error(' [api] Não autorizado - token inválido ou expirado')
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('authToken')
+        alert('Sua sessão expirou. Por favor, faça login novamente.')
+      }
       return false
     }
     
-    console.log(`✅ [api] Favorito ${isFavorite ? 'removido' : 'adicionado'}`)
+    if (!response.ok) {
+      console.error(' [api] Erro ao alterar favorito:', response.status)
+      return false
+    }
+    
+    console.log(` [api] Favorito ${isFavorite ? 'removido' : 'adicionado'}`)
     return true
   } catch (error) {
-    console.error('❌ [api] Erro ao alterar favorito:', error)
+    console.error(' [api] Erro ao alterar favorito:', error)
     return false
   }
 }
 
-// Função para buscar estatísticas de uma API
-export async function fetchAPIStatistics(apiId: string): Promise<any> {
+// Função para verificar se uma API é favorita
+export async function checkFavorite(userId: string, apiId: string): Promise<boolean> {
   try {
-    console.log(`📊 [api] Buscando estatísticas da API: ${apiId}`)
+    console.log(` [api] Verificando se API ${apiId} é favorita do usuário ${userId}`)
     
-    // Esta função depende de ter uma rota no backend
-    // Se não tiver, pode retornar dados mock ou vazio
-    return {
-      uptime: '99.9%',
-      avgResponseTime: '120ms',
-      totalTests: 1500,
-      lastTested: new Date().toISOString()
+    const response = await fetch(`${API_BASE_URL}/user-favorites/check?user_id=${userId}&api_id=${apiId}`)
+    
+    if (!response.ok) {
+      console.error(' [api] Erro ao verificar favorito:', response.status)
+      return false
     }
+    
+    const data = await response.json()
+    console.log(` [api] API ${apiId} ${data.isFavorite ? 'é' : 'não é'} favorita`)
+    
+    return data.isFavorite || false
   } catch (error) {
-    console.error('❌ [api] Erro ao buscar estatísticas:', error)
+    console.error(' [api] Erro ao verificar favorito:', error)
+    return false
+  }
+}
+
+// Função para buscar API por ID
+export async function fetchAPIById(apiId: string): Promise<any | null> {
+  try {
+    console.log(` [api] Buscando API por ID: ${apiId}`)
+    
+    const response = await fetch(`${API_BASE_URL}/api/${apiId}`)
+    
+    if (!response.ok) {
+      console.error(' [api] Erro ao buscar API:', response.status)
+      return null
+    }
+    
+    const data = await response.json()
+    console.log(' [api] API encontrada:', data.data?.name)
+    
+    return data.data || null
+  } catch (error) {
+    console.error(' [api] Erro ao buscar API:', error)
     return null
-  }
-}
-
-// Função para buscar categorias únicas
-export async function fetchCategories(): Promise<string[]> {
-  try {
-    const apis = await fetchAPIs()
-    
-    // Extrair categorias das tags
-    const categories = Array.from(
-      new Set(
-        apis.map(api => {
-          if (!api.tags) return 'Outros'
-          
-          const commonCategories = [
-            'Clima', 'Financeiro', 'Imagens', 'Dados', 'Tradução', 
-            'Geografia', 'Redes Sociais', 'Pagamentos', 'IA', 'Educação',
-            'Animais', 'Palavras', 'Livros', 'Produtos', 'Diversão',
-            'Nomes', 'Localização', 'Fotos', 'Música', 'Jogos',
-            'Desenvolvimento', 'Email', 'Calendário', 'Análises', 'Mobile'
-          ]
-          
-          const tagList = api.tags.split(',').map(tag => tag.trim())
-          const foundCategory = commonCategories.find(category => 
-            tagList.some(tag => tag.toLowerCase().includes(category.toLowerCase()))
-          )
-          
-          return foundCategory || 'Outros'
-        })
-      )
-    )
-    
-    return categories.sort()
-  } catch (error) {
-    console.error('❌ [api] Erro ao buscar categorias:', error)
-    return ['Outros']
-  }
-}
-
-// Função para filtrar APIs
-export async function filterAPIs(filters: {
-  category?: string
-  search?: string
-  freeOnly?: boolean
-}): Promise<API[]> {
-  try {
-    const apis = await fetchAPIs()
-    
-    let filtered = apis
-    
-    // Filtrar por categoria
-    if (filters.category && filters.category !== 'Todos') {
-      filtered = filtered.filter(api => {
-        if (!api.tags) return filters.category === 'Outros'
-        
-        const commonCategories = [
-          'Clima', 'Financeiro', 'Imagens', 'Dados', 'Tradução', 
-          'Geografia', 'Redes Sociais', 'Pagamentos', 'IA', 'Educação',
-          'Animais', 'Palavras', 'Livros', 'Produtos', 'Diversão',
-          'Nomes', 'Localização', 'Fotos', 'Música', 'Jogos',
-          'Desenvolvimento', 'Email', 'Calendário', 'Análises', 'Mobile'
-        ]
-        
-        const tagList = api.tags.split(',').map(tag => tag.trim())
-        const foundCategory = commonCategories.find(category => 
-          tagList.some(tag => tag.toLowerCase().includes(category.toLowerCase()))
-        )
-        
-        const apiCategory = foundCategory || 'Outros'
-        return apiCategory === filters.category
-      })
-    }
-    
-    // Filtrar por busca
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase()
-      filtered = filtered.filter(api =>
-        api.name.toLowerCase().includes(searchLower) ||
-        api.description.toLowerCase().includes(searchLower) ||
-        api.tags.toLowerCase().includes(searchLower)
-      )
-    }
-    
-    // Filtrar por grátis apenas (baseado na presença de "free" ou "gratis" nas tags)
-    if (filters.freeOnly) {
-      filtered = filtered.filter(api =>
-        api.tags.toLowerCase().includes('free') ||
-        api.tags.toLowerCase().includes('gratis') ||
-        api.tags.toLowerCase().includes('gratuito')
-      )
-    }
-    
-    return filtered
-  } catch (error) {
-    console.error('❌ [api] Erro ao filtrar APIs:', error)
-    return []
   }
 }

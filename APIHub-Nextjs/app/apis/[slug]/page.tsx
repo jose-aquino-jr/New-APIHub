@@ -68,7 +68,7 @@ export default function APIDetail({ params }: PageProps) {
   }
 
   const fullUrl = `${api.base_url}${api.endpoint_path || ''}`
-  const parameters = parseParameters(api.parameters)
+const parameters = api.parameters ? parseParameters(api.parameters) : {}
 
   return (
     <div className="min-h-screen pt-20 bg-gray-50">
@@ -336,4 +336,5 @@ function getCategoryColor(category: string) {
     'default': 'badge-blue'
   }
   return colors[category as keyof typeof colors] || colors.default
+
 }
