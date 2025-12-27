@@ -1,98 +1,104 @@
 'use client';
 
-import React, { useState } from 'react';
-import { PlayCircle, Loader2, Code, Globe, ShieldCheck } from 'lucide-react';
+import React from 'react';
+import Link from 'next/link';
+import { PlayCircle, FileText, ChevronRight, Clock } from 'lucide-react';
 
-// 1. A INTERFACE QUE RESOLVE O SEU ERRO DE TIPAGEM
 interface CourseContentProps {
-  courseId: string;
+  initialData: {
+    slug: string;
+    curso_modulos?: any[]; // Adicionei a '?' para ser opcional
+  };
 }
 
-// Interface para os detalhes técnicos que vêm da sua rota /api/:id
-interface ApiDetail {
-  id: string;
-  name: string;
-  endpoint_url?: string;
-  method?: string;
-  auth_type?: string;
-  description: string;
-}
+export default function CourseContent({ initialData }: CourseContentProps) {
+  // 1. Extração segura dos módulos
+  const modulosRaw = initialData?.curso_modulos || [];
+  
+  // 2. Ordenação garantindo que valores nulos não quebrem o código
+  const modulos = [...modulosRaw].sort((a, b) => 
+    (Number(a.ordem) || 0) - (Number(b.ordem) || 0)
+  );
 
-export default function CourseContent({ courseId }: CourseContentProps) {
-  const [data, setData] = useState<ApiDetail | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [hasLoaded, setHasLoaded] = useState(false);
-
-  async function fetchApiDetails() {
-    setLoading(true);
-    try {
-      // Chamando sua rota real no backend
-      const response = await fetch(`https://apihub-br.duckdns.org/api/${courseId}`);
-      if (!response.ok) throw new Error('Falha ao carregar dados');
-      
-      const result = await response.json();
-      setData(result);
-      setHasLoaded(true);
-    } catch (error) {
-      console.error("Erro:", error);
-      alert("Não foi possível carregar os detalhes técnicos.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // ESTADO INICIAL: Botão para carregar
-  if (!hasLoaded) {
+  if (modulos.length === 0) {
     return (
-      <div className="text-center py-6">
-        <button
-          onClick={fetchApiDetails}
-          disabled={loading}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-bold transition-all flex items-center gap-2 mx-auto disabled:opacity-50"
-        >
-          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <PlayCircle className="w-5 h-5" />}
-          {loading ? 'Consultando Servidor...' : 'Visualizar Endpoints e Auth'}
-        </button>
+      <div className="p-12 text-center border-2 border-dashed border-gray-100 rounded-[2rem] bg-gray-50/30">
+        <p className="text-gray-400 font-medium italic">
+          Nenhum conteúdo disponível para este curso ainda.
+        </p>
       </div>
     );
   }
 
-  // ESTADO CARREGADO: Mostra os detalhes técnicos da API
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-      <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-        <Code className="w-6 h-6 text-blue-600" /> Especificações Técnicas
-      </h3>
+    <div className="space-y-6">
+      {modulos.map((modulo: any, index: number) => (
+        <div 
+          key={modulo.id || index} 
+          className="bg-white border border-gray-100 rounded-[2rem] overflow-hidden shadow-sm hover:shadow-md transition-all"
+        >
+          {/* Cabeçalho do Módulo */}
+          <div className="p-6 bg-gray-50/50 border-b border-gray-100 flex justify-between items-center">
+            <div className="flex-1">
+              <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em]">
+                Módulo {modulo.ordem || index + 1}
+              </span>
+              <h3 className="text-xl font-bold text-gray-900 leading-tight">
+                {modulo.titulo}
+              </h3>
+            </div>
+            <div className="hidden sm:block">
+              <span className="text-[11px] font-bold text-gray-400 bg-white border border-gray-200 px-3 py-1 rounded-full uppercase">
+                {modulo.curso_blocos?.length || 0} Aulas
+              </span>
+            </div>
+          </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1">
-            <Globe className="w-3 h-3" /> Endpoint Base
-          </span>
-          <p className="mt-1 text-gray-800 font-mono text-sm break-all">
-            {data?.endpoint_url || 'https://api.exemplo.com/v1'}
-          </p>
-        </div>
+          {/* Lista de Aulas */}
+          <div className="divide-y divide-gray-50">
+            {modulo.curso_blocos && modulo.curso_blocos.length > 0 ? (
+              [...modulo.curso_blocos]
+                .sort((a: any, b: any) => (Number(a.ordem) || 0) - (Number(b.ordem) || 0))
+                .map((aula: any) => (
+                  <Link
+                    key={aula.id}
+                    // IMPORTANTE: Forçamos o ID para String para bater com a rota [aulaId]
+                    href={`/academy/courses/${initialData.slug}/aula/${String(aula.id)}`}
+                    className="p-5 flex items-center justify-between hover:bg-blue-50/40 transition-all group"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center text-blue-500 group-hover:bg-blue-600 group-hover:text-white transition-all group-hover:scale-105">
+                        {aula.tipo === 'video' ? <PlayCircle size={20} /> : <FileText size={20} />}
+                      </div>
+                      
+                      <div>
+                        <h4 className="text-sm font-bold text-gray-800 group-hover:text-blue-700 transition-colors">
+                          {aula.titulo}
+                        </h4>
+                        <div className="flex items-center gap-3 mt-1">
+                          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                            {aula.tipo === 'video' ? 'Vídeo Aula' : 'Leitura'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
 
-        <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1">
-            <ShieldCheck className="w-3 h-3" /> Autenticação
-          </span>
-          <p className="mt-1 text-gray-800 font-medium text-sm">
-            {data?.auth_type || 'API Key / Bearer Token'}
-          </p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-black text-blue-600 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                        Acessar
+                      </span>
+                      <ChevronRight size={18} className="text-gray-300 group-hover:text-blue-600 transition-colors" />
+                    </div>
+                  </Link>
+                ))
+            ) : (
+              <div className="p-6 text-center text-sm text-gray-400 italic">
+                Aulas em breve para este módulo.
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-
-      <div className="bg-gray-900 rounded-lg p-4">
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-xs font-bold text-gray-400 uppercase">Exemplo de Resposta (JSON)</span>
-          <span className="text-[10px] bg-green-500/20 text-green-400 px-2 py-0.5 rounded">200 OK</span>
-        </div>
-        <pre className="text-blue-300 font-mono text-xs overflow-x-auto p-2 leading-relaxed">
-          {JSON.stringify(data, null, 2)}
-        </pre>
-      </div>
+      ))}
     </div>
   );
 }
