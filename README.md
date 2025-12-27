@@ -3,10 +3,10 @@
 Descubra e integre APIs gratuitas em uma plataforma **feita para desenvolvedores de verdade**
 
 <div align="center">
-  <a href="#">
+  <a href="apihub.com.br/apis">
     <img src="https://img.shields.io/badge/Explorar_Catálogo-667eea?style=for-the-badge&logo=rocket&logoColor=white" alt="Explorar Catálogo" />
   </a>
-  <a href="#">
+  <a href="apihub.com.br/documentacao-oficial-apihub.pdf">
     <img src="https://img.shields.io/badge/Ver_Documentação-764ba2?style=for-the-badge&logo=book&logoColor=white" alt="Ver Documentação" />
   </a>
 </div>
@@ -16,16 +16,16 @@ Descubra e integre APIs gratuitas em uma plataforma **feita para desenvolvedores
 <div align="center">
   <div style="display: flex; justify-content: center; gap: 3rem; margin: 3rem 0;">
     <div style="text-align: center;">
-      <div style="font-size: 2.5rem; font-weight: bold; color: #667eea;">10+</div>
-      <div style="color: #666; margin-top: 0.5rem;">APIs Disponíveis</div>
+      <div style="font-size: 2.5rem; font-weight: bold; color: #667eea;">40+</div>
+      <div style="color: #667; margin-top: 0.5rem;">APIs Disponíveis</div>
     </div>
     <div style="text-align: center;">
       <div style="font-size: 2.5rem; font-weight: bold; color: #764ba2;">15+</div>
-      <div style="color: #666; margin-top: 0.5rem;">Categorias</div>
+      <div style="color: #667; margin-top: 0.5rem;">Categorias</div>
     </div>
     <div style="text-align: center;">
-      <div style="font-size: 2.5rem; font-weight: bold; color: #9d50bb;">1+</div>
-      <div style="color: #666; margin-top: 0.5rem;">Desenvolvedores</div>
+      <div style="font-size: 2.5rem; font-weight: bold; color: #9d50bb;">3+</div>
+      <div style="color: #667; margin-top: 0.5rem;">Desenvolvedores</div>
     </div>
   </div>
 </div>
