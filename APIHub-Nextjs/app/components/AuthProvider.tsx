@@ -62,7 +62,7 @@ const login = async (email: string, password: string) => {
   try {
     console.log('🔐 Tentando login:', email)
     
-    const response = await fetch('https://apihub-br.duckdns.org/login', {
+    const response = await fetch('http://localhost:8000/login', {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json' 
@@ -77,27 +77,33 @@ const login = async (email: string, password: string) => {
     console.log('🔐 Resposta COMPLETA do login:', result)
     
     if (response.ok && result.success) {
-      // AGORA os dados estão em result.data
+      // VERIFIQUE A ESTRUTURA DA RESPOSTA
+      console.log('✅ Login bem-sucedido! Dados:', result.data)
+      
+      // O problema pode estar aqui - verifique onde estão os dados do usuário
       const userData = {
-        id: result.data?.user?.id,
-        email: result.data?.user?.email || email,
-        name: result.data?.user?.name || 'Usuário',
-        accept_terms: result.data?.user?.accept_terms
+        id: result.data?.user?.id || result.user?.id,
+        email: result.data?.user?.email || result.user?.email || email,
+        name: result.data?.user?.name || result.user?.name || 'Usuário',
+        accept_terms: result.data?.user?.accept_terms || false
       }
       
+      console.log('📦 Dados do usuário preparados:', userData)
+      
       // Salvar token e dados do usuário
-      if (result.data?.session?.access_token) {
-        localStorage.setItem('authToken', result.data.session.access_token)
-      }
-      if (result.data?.session?.refresh_token) {
-        localStorage.setItem('refreshToken', result.data.session.refresh_token)
+      const token = result.data?.session?.access_token || result.session?.access_token
+      if (token) {
+        localStorage.setItem('authToken', token)
+        console.log('✅ Token salvo no localStorage')
       }
       
       localStorage.setItem('apihub_user', JSON.stringify(userData))
       setUser(userData)
       
-      // Carregar favoritos
-      await loadFavoritesFromBackend(userData.id)
+      // Forçar atualização do estado
+      setTimeout(() => {
+        console.log('🔄 Estado atualizado, usuário:', userData)
+      }, 100)
       
       return { error: null }
     }
@@ -118,7 +124,7 @@ const register = async (email: string, password: string, name: string, acceptTer
   try {
     console.log('📝 Tentando registrar usuário:', { email, name, acceptTerms })
     
-    const response = await fetch('https://apihub-br.duckdns.org/cadastro', {
+    const response = await fetch('http://localhost:8000/cadastro', {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json' 
@@ -161,7 +167,7 @@ const register = async (email: string, password: string, name: string, acceptTer
   const loadFavoritesFromBackend = async (userId: string) => {
     try {
       const response = await fetch(
-        `https://apihub-br.duckdns.org/user-favorites?user_id=${userId}`
+        `http://localhost:8000/user-favorites?user_id=${userId}`
       )
       
       if (response.ok) {
@@ -196,7 +202,7 @@ const register = async (email: string, password: string, name: string, acceptTer
       if (isCurrentlyFavorite) {
         // Remover dos favoritos
         const response = await fetch(
-          `https://apihub-br.duckdns.org/user-favorites?user_id=${user.id}&api_id=${apiId}`,
+          `http://localhost:8000/user-favorites?user_id=${user.id}&api_id=${apiId}`,
           { 
             method: 'DELETE',
             headers: {
@@ -213,7 +219,7 @@ const register = async (email: string, password: string, name: string, acceptTer
         }
       } else {
         // Adicionar aos favoritos
-        const response = await fetch('https://apihub-br.duckdns.org/user-favorites', {
+        const response = await fetch('http://localhost:8000/user-favorites', {
           method: 'POST',
           headers: {
             'Authorization': token ? `Bearer ${token}` : '',

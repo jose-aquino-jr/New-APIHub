@@ -22,7 +22,7 @@ export default function AuthCallback() {
       
       if (code) {
         try {
-          const response = await fetch(`https://https://apihub-br.duckdns.orgauth/callback?code=${code}`)
+          const response = await fetch(`http://localhost:8000auth/callback?code=${code}`)
           const data = await response.json()
           
           if (data.success) {
