@@ -16,13 +16,13 @@ export default function AuthCallback() {
         const user_id = searchParams.get('user_id')
         const email = searchParams.get('email')
         
-        console.log('Tokens recebidos:', { access_token, user_id, email })
+        console.log('AuthCallback: Tokens recebidos:', { access_token, user_id, email })
         
         if (access_token) {
           // Salvar tokens no localStorage
-          localStorage.setItem('supabase_access_token', access_token)
+          localStorage.setItem('authToken', access_token)
           if (refresh_token) {
-            localStorage.setItem('supabase_refresh_token', refresh_token)
+            localStorage.setItem('refreshToken', refresh_token)
           }
           if (user_id) {
             localStorage.setItem('supabase_user_id', user_id)
@@ -40,10 +40,11 @@ export default function AuthCallback() {
               const userData = await userResponse.json()
               if (userData.success) {
                 localStorage.setItem('apihub_user', JSON.stringify(userData.data.user))
+                console.log('AuthCallback: Dados do usuário salvos')
               }
             }
           } catch (userError) {
-            console.warn('Não foi possível buscar dados do usuário:', userError)
+            console.warn('AuthCallback: Não foi possível buscar dados do usuário:', userError)
             // Criar objeto básico do usuário
             const basicUser = {
               id: user_id,
@@ -53,14 +54,14 @@ export default function AuthCallback() {
             localStorage.setItem('apihub_user', JSON.stringify(basicUser))
           }
           
-          // Redirecionar para dashboard
-          console.log('✅ Login realizado com sucesso!')
-          router.push('/dashboard')
+          // Recarregar a página para o AuthProvider detectar o login
+          console.log('AuthCallback: Login realizado com sucesso!')
+          window.location.href = '/'
         } else {
           // Tentar usar código se não tiver tokens diretos
           const code = searchParams.get('code')
           if (code) {
-            console.log('Usando código para autenticação...')
+            console.log('AuthCallback: Usando código para autenticação...')
             // Chamar seu backend para trocar código
             const response = await fetch(`https://apihub-br.duckdns.org/auth/supabase-callback?code=${code}`)
             
@@ -70,19 +71,19 @@ export default function AuthCallback() {
             } else {
               const data = await response.json()
               if (data.success && data.session) {
-                localStorage.setItem('supabase_access_token', data.session.access_token)
-                localStorage.setItem('supabase_refresh_token', data.session.refresh_token)
+                localStorage.setItem('authToken', data.session.access_token)
+                localStorage.setItem('refreshToken', data.session.refresh_token)
                 localStorage.setItem('apihub_user', JSON.stringify(data.user))
-                router.push('/dashboard')
+                window.location.href = '/'
               }
             }
           } else {
-            console.error('Nenhum token ou código encontrado')
+            console.error('AuthCallback: Nenhum token ou código encontrado')
             router.push('/login?error=no_tokens')
           }
         }
       } catch (error) {
-        console.error('Erro no callback:', error)
+        console.error('AuthCallback: Erro no callback:', error)
         router.push('/login?error=callback_failed')
       }
     }
