@@ -15,76 +15,66 @@ export default function AuthCallback() {
         const refresh_token = searchParams.get('refresh_token')
         const user_id = searchParams.get('user_id')
         const email = searchParams.get('email')
+        const name = searchParams.get('name')
         
-        console.log('AuthCallback: Tokens recebidos:', { access_token, user_id, email })
+        console.log('AuthCallback: Tokens recebidos:', { 
+          access_token: !!access_token, 
+          user_id, 
+          email 
+        })
         
-        if (access_token) {
+        if (access_token && user_id) {
+          console.log('AuthCallback: Salvando tokens no localStorage')
+          
           // Salvar tokens no localStorage
           localStorage.setItem('authToken', access_token)
           if (refresh_token) {
             localStorage.setItem('refreshToken', refresh_token)
           }
-          if (user_id) {
-            localStorage.setItem('supabase_user_id', user_id)
+          
+          // Criar objeto do usuário
+          const userData = {
+            id: user_id,
+            email: email || '',
+            name: name || (email ? email.split('@')[0] : 'Usuário')
           }
           
-          // Buscar dados do usuário do Supabase
-          try {
-            const userResponse = await fetch('https://apihub-br.duckdns.org/auth/session', {
-              headers: {
-                'Authorization': `Bearer ${access_token}`
-              }
-            })
-            
-            if (userResponse.ok) {
-              const userData = await userResponse.json()
-              if (userData.success) {
-                localStorage.setItem('apihub_user', JSON.stringify(userData.data.user))
-                console.log('AuthCallback: Dados do usuário salvos')
-              }
-            }
-          } catch (userError) {
-            console.warn('AuthCallback: Não foi possível buscar dados do usuário:', userError)
-            // Criar objeto básico do usuário
-            const basicUser = {
-              id: user_id,
-              email: email,
-              name: email ? email.split('@')[0] : 'Usuário'
-            }
-            localStorage.setItem('apihub_user', JSON.stringify(basicUser))
-          }
+          localStorage.setItem('apihub_user', JSON.stringify(userData))
           
-          // Recarregar a página para o AuthProvider detectar o login
-          console.log('AuthCallback: Login realizado com sucesso!')
-          window.location.href = '/'
-        } else {
-          // Tentar usar código se não tiver tokens diretos
-          const code = searchParams.get('code')
-          if (code) {
-            console.log('AuthCallback: Usando código para autenticação...')
-            // Chamar seu backend para trocar código
-            const response = await fetch(`https://apihub-br.duckdns.org/auth/supabase-callback?code=${code}`)
-            
-            if (response.redirected) {
-              // Se houver redirecionamento, seguir
-              window.location.href = response.url
-            } else {
-              const data = await response.json()
-              if (data.success && data.session) {
-                localStorage.setItem('authToken', data.session.access_token)
-                localStorage.setItem('refreshToken', data.session.refresh_token)
-                localStorage.setItem('apihub_user', JSON.stringify(data.user))
-                window.location.href = '/'
-              }
-            }
+          // Fechar popup se estiver em um
+          if (window.opener) {
+            window.opener.postMessage({ type: 'oauth-completed' }, '*')
+            window.close()
           } else {
-            console.error('AuthCallback: Nenhum token ou código encontrado')
+            // Redirecionar para home
+            window.location.href = '/'
+          }
+        } else {
+          console.error('AuthCallback: Nenhum token encontrado')
+          
+          // Se estiver em popup, tentar fechar
+          if (window.opener) {
+            window.opener.postMessage({ 
+              type: 'oauth-error', 
+              error: 'no_tokens' 
+            }, '*')
+            window.close()
+          } else {
             router.push('/login?error=no_tokens')
           }
         }
       } catch (error) {
         console.error('AuthCallback: Erro no callback:', error)
-        router.push('/login?error=callback_failed')
+        
+        if (window.opener) {
+          window.opener.postMessage({ 
+            type: 'oauth-error', 
+            error: 'callback_failed' 
+          }, '*')
+          window.close()
+        } else {
+          router.push('/login?error=callback_failed')
+        }
       }
     }
     
