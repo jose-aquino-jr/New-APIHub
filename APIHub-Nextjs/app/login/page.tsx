@@ -88,41 +88,21 @@ export default function Login() {
   }
 
   const handleGoogleLogin = async () => {
-    try {
-      setIsOAuthLoading(true)
-      setError('')
-      
-      // Abrir em popup
-      const width = 600
-      const height = 700
-      const left = window.screen.width / 2 - width / 2
-      const top = window.screen.height / 2 - height / 2
-      
-      console.log('Abrindo popup para Google OAuth...')
-      
-      window.open(
-        'https://apihub-br.duckdns.org/auth/google',
-        'oauth-popup',
-        `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
-      )
-      
-      // Verificar se popup foi bloqueado
-      setTimeout(() => {
-        if (isOAuthLoading) {
-          const popup = window.open('', 'oauth-popup')
-          if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-            setError('Popup bloqueado! Por favor, permita popups para este site.')
-            setIsOAuthLoading(false)
-          }
-        }
-      }, 1000)
-      
-    } catch (error) {
-      console.error('Erro Google:', error)
-      setIsOAuthLoading(false)
-      setError('Erro ao iniciar login com Google')
+  try {
+    // Abrir na MESMA aba
+    const response = await fetch('https://apihub-br.duckdns.org/auth/google')
+    const data = await response.json()
+    
+    if (data.success && data.url) {
+      window.location.href = data.url
+    } else {
+      setError(data.message || 'Erro ao iniciar login com Google')
     }
+  } catch (error) {
+    console.error('Erro Google:', error)
+    setError('Erro ao iniciar login com Google')
   }
+}
 
   const handleGithubLogin = async () => {
     try {
@@ -365,3 +345,4 @@ export default function Login() {
     </div>
   )
 }
+
