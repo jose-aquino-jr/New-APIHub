@@ -1,5 +1,6 @@
 // lib/utils.ts
 import type { API } from '@/types'
+import { fetchAPIs, fetchAPIBySlug } from '@/lib/api'
 
 // Função para gerar slug a partir do nome
 export function generateSlug(name: string): string {
@@ -46,52 +47,44 @@ export function parseParameters(parameters: string): Record<string, string> {
   }
 }
 
-// FUNÇÃO ADICIONADA DE VOLTA: Buscar API pelo slug
+// FUNÇÃO CORRIGIDA: Buscar API pelo slug
 export async function getApiBySlug(slug: string): Promise<API | null> {
   try {
-    console.log('🔍 [utils] Buscando API por slug:', slug)
+    console.log('[utils] Buscando API por slug:', slug)
     
-    // Primeiro tenta com o slug exato
-    let response = await fetch(`https://apihub-br.duckdns.org/api-by-slug/${slug}`)
+    // Usa a função do api.ts corrigida
+    const api = await fetchAPIBySlug(slug)
     
-    if (response.ok) {
-      const api = await response.json()
-      console.log('✅ [utils] API encontrada:', api.name)
+    if (api) {
+      console.log('[utils] API encontrada:', api.name)
       return api
     }
     
-    console.log(`⚠️ [utils] Slug "${slug}" não encontrado, tentando variações...`)
+    console.log(`[utils] Slug "${slug}" não encontrado, tentando variações...`)
     
     // Se falhar, tenta sem "-api" no final
     if (slug.endsWith('-api')) {
       const slugWithoutApi = slug.replace(/-api$/, '')
-      console.log(`🔄 [utils] Tentando sem "-api": ${slugWithoutApi}`)
+      console.log(`[utils] Tentando sem "-api": ${slugWithoutApi}`)
       
-      response = await fetch(`https://apihub-br.duckdns.org/api-by-slug/${slugWithoutApi}`)
+      const apiWithoutSuffix = await fetchAPIBySlug(slugWithoutApi)
       
-      if (response.ok) {
-        const api = await response.json()
-        console.log('✅ [utils] API encontrada sem "-api":', api.name)
-        return api
+      if (apiWithoutSuffix) {
+        console.log('[utils] API encontrada sem "-api":', apiWithoutSuffix.name)
+        return apiWithoutSuffix
       }
     }
     
     // Se ainda falhar, busca em todas as APIs localmente
-    console.log('🔄 [utils] Buscando em todas as APIs...')
-    const allApisResponse = await fetch('https://apihub-br.duckdns.org/apis')
+    console.log('[utils] Buscando em todas as APIs...')
+    const allApis = await fetchAPIs()
     
-    if (!allApisResponse.ok) {
-      console.error('❌ [utils] Falha ao buscar todas as APIs')
-      return null
-    }
-    
-    const allApis = await allApisResponse.json()
-    console.log(`📊 [utils] ${allApis.length} APIs disponíveis`)
+    console.log(`[utils] ${allApis.length} APIs disponíveis`)
     
     // Lógica de busca local
     const normalizedSlug = slug.toLowerCase().trim()
     
-    const api = allApis.find((api: API) => {
+    const foundApi = allApis.find((api: API) => {
       const apiName = api.name.toLowerCase().trim()
       
       // 1. Compara slug gerado do nome
@@ -114,35 +107,36 @@ export async function getApiBySlug(slug: string): Promise<API | null> {
       )
     })
     
-    if (api) {
-      console.log('✅ [utils] API encontrada localmente:', api.name)
-      return api
+    if (foundApi) {
+      console.log('[utils] API encontrada localmente:', foundApi.name)
+      return foundApi
     }
     
-    console.log('❌ [utils] API não encontrada após todas as tentativas')
+    console.log('[utils] API não encontrada após todas as tentativas')
     return null
     
   } catch (error) {
-    console.error('❌ [utils] Erro ao buscar API por slug:', error)
+    console.error('[utils] Erro ao buscar API por slug:', error)
     return null
   }
 }
 
-// Função para obter APIs relacionadas
+// Função CORRIGIDA para obter APIs relacionadas
 export async function getRelatedApis(api: API, limit: number = 4): Promise<API[]> {
   try {
-    console.log('🔍 [utils] Buscando APIs relacionadas para:', api.name)
+    console.log('[utils] Buscando APIs relacionadas para:', api.name)
     
-    const response = await fetch('https://apihub-br.duckdns.org/apis')
-    if (!response.ok) {
-      console.error('❌ [utils] Falha ao buscar APIs para relacionadas')
-      return []
-    }
-    
-    const allApis = await response.json()
+    // Usa a função do api.ts corrigida
+    const allApis = await fetchAPIs()
     const category = getCategoryFromTags(api.tags)
     
-    console.log(`📊 [utils] Categoria: ${category}, Total APIs: ${allApis.length}`)
+    console.log(`[utils] Categoria: ${category}, Total APIs: ${allApis.length}`)
+    
+    // Certifica que allApis é um array
+    if (!Array.isArray(allApis)) {
+      console.error('[utils] allApis não é um array:', typeof allApis)
+      return []
+    }
     
     // Filtrar APIs da mesma categoria (exceto a atual)
     const related = allApis.filter((a: API) => 
@@ -150,11 +144,11 @@ export async function getRelatedApis(api: API, limit: number = 4): Promise<API[]
       getCategoryFromTags(a.tags) === category
     ).slice(0, limit)
     
-    console.log(`✅ [utils] ${related.length} APIs relacionadas encontradas`)
+    console.log(`[utils] ${related.length} APIs relacionadas encontradas`)
     return related
     
   } catch (error) {
-    console.error('❌ [utils] Erro ao buscar APIs relacionadas:', error)
+    console.error('[utils] Erro ao buscar APIs relacionadas:', error)
     return []
   }
 }
