@@ -45,7 +45,6 @@ export default function Login() {
 
   const handleGoogleLogin = async () => {
     try {
-      alert('Login com Google será implementado em breve!')
       window.location.href = 'https://apihub-br.duckdns.org/auth/google'
     } catch (error) {
       console.error('Erro Google:', error)
@@ -214,4 +213,5 @@ export default function Login() {
       </motion.div>
     </div>
   )
+
 }
