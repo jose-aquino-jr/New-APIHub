@@ -1,8 +1,7 @@
-// app/login/page.tsx
 'use client'
 
 import { motion } from 'framer-motion'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -14,9 +13,54 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [isOAuthLoading, setIsOAuthLoading] = useState(false)
 
   const { login } = useAuth()
   const router = useRouter()
+
+  // Ouvir mensagens do popup OAuth
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      console.log('Mensagem recebida no login page:', event.data)
+      
+      // Verificar origem (aceitar backend também)
+      const allowedOrigins = [
+        'https://apihub-br.duckdns.org',
+        'http://localhost:8000',
+        'http://localhost:3000'
+      ]
+      
+      if (!allowedOrigins.includes(event.origin)) {
+        console.log('Origem não permitida:', event.origin)
+        return
+      }
+      
+      if (event.data.type === 'oauth-success') {
+        console.log('Login OAuth bem-sucedido!', event.data.user)
+        setIsOAuthLoading(false)
+        
+        // Salvar dados do usuário
+        localStorage.setItem('apihub_user', JSON.stringify(event.data.user))
+        localStorage.setItem('authToken', event.data.user.access_token)
+        localStorage.setItem('refreshToken', event.data.user.refresh_token)
+        
+        // Recarregar a página para o AuthProvider capturar
+        window.location.href = '/'
+      }
+      
+      if (event.data.type === 'oauth-error') {
+        console.error('Erro no OAuth:', event.data.error)
+        setIsOAuthLoading(false)
+        setError('Falha na autenticação com Google/GitHub')
+      }
+    }
+    
+    window.addEventListener('message', handleMessage)
+    
+    return () => {
+      window.removeEventListener('message', handleMessage)
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -45,18 +89,85 @@ export default function Login() {
 
   const handleGoogleLogin = async () => {
     try {
-      window.location.href = 'https://apihub-br.duckdns.org/auth/google'
+      setIsOAuthLoading(true)
+      setError('')
+      
+      // Abrir em popup
+      const width = 600
+      const height = 700
+      const left = window.screen.width / 2 - width / 2
+      const top = window.screen.height / 2 - height / 2
+      
+      console.log('Abrindo popup para Google OAuth...')
+      
+      window.open(
+        'https://apihub-br.duckdns.org/auth/google',
+        'oauth-popup',
+        `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
+      )
+      
+      // Verificar se popup foi bloqueado
+      setTimeout(() => {
+        if (isOAuthLoading) {
+          const popup = window.open('', 'oauth-popup')
+          if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+            setError('Popup bloqueado! Por favor, permita popups para este site.')
+            setIsOAuthLoading(false)
+          }
+        }
+      }, 1000)
+      
     } catch (error) {
       console.error('Erro Google:', error)
+      setIsOAuthLoading(false)
+      setError('Erro ao iniciar login com Google')
     }
   }
 
   const handleGithubLogin = async () => {
     try {
-      window.location.href = 'https://apihub-br.duckdns.org/auth/github'
+      setIsOAuthLoading(true)
+      setError('')
+      
+      // Abrir em popup
+      const width = 600
+      const height = 700
+      const left = window.screen.width / 2 - width / 2
+      const top = window.screen.height / 2 - height / 2
+      
+      console.log('🔗 Abrindo popup para GitHub OAuth...')
+      
+      window.open(
+        'https://apihub-br.duckdns.org/auth/github',
+        'oauth-popup',
+        `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
+      )
+      
+      // Verificar se popup foi bloqueado
+      setTimeout(() => {
+        if (isOAuthLoading) {
+          const popup = window.open('', 'oauth-popup')
+          if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+            setError('Popup bloqueado! Por favor, permita popups para este site.')
+            setIsOAuthLoading(false)
+          }
+        }
+      }, 1000)
+      
     } catch (error) {
       console.error('Erro GitHub:', error)
+      setIsOAuthLoading(false)
+      setError('Erro ao iniciar login com GitHub')
     }
+  }
+
+  // Função para abrir na mesma aba (fallback)
+  const handleGoogleDirect = () => {
+    window.location.href = 'https://apihub-br.duckdns.org/auth/google'
+  }
+
+  const handleGithubDirect = () => {
+    window.location.href = 'https://apihub-br.duckdns.org/auth/github'
   }
 
   return (
@@ -73,20 +184,59 @@ export default function Login() {
           <p className="text-gray-600">Acesse sua conta para continuar</p>
         </div>
 
+        {/* Loading overlay para OAuth */}
+        {isOAuthLoading && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+            <div className="bg-white rounded-xl p-8 max-w-sm w-full mx-4">
+              <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-center text-gray-700 font-medium">Aguardando autenticação...</p>
+              <p className="text-center text-gray-500 text-sm mt-2">
+                Complete o login na janela popup
+              </p>
+              <button
+                onClick={() => setIsOAuthLoading(false)}
+                className="mt-6 text-sm text-gray-500 hover:text-gray-700"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Mensagens de erro */}
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
             <p className="text-red-600 text-sm text-center">{error}</p>
+            {error.includes('popup') && (
+              <div className="mt-2">
+                <p className="text-sm text-gray-600 mb-2">Tente uma das opções:</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleGoogleDirect}
+                    className="flex-1 text-sm py-2 bg-red-50 border border-red-200 text-red-600 rounded-lg hover:bg-red-100"
+                  >
+                    Google (mesma aba)
+                  </button>
+                  <button
+                    onClick={handleGithubDirect}
+                    className="flex-1 text-sm py-2 bg-red-50 border border-red-200 text-red-600 rounded-lg hover:bg-red-100"
+                  >
+                    GitHub (mesma aba)
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Botões de login social - SIMPLES */}
+        {/* Botões de login social */}
         <div className="mb-6">
           <div className="flex gap-3">
             <button
               type="button"
               onClick={handleGoogleLogin}
-              className="flex-1 flex items-center justify-center gap-2 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition"
+              disabled={isOAuthLoading || isLoading}
+              className="flex-1 flex items-center justify-center gap-2 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {/* Ícone Google inline */}
               <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -101,7 +251,8 @@ export default function Login() {
             <button
               type="button"
               onClick={handleGithubLogin}
-              className="flex-1 flex items-center justify-center gap-2 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition"
+              disabled={isOAuthLoading || isLoading}
+              className="flex-1 flex items-center justify-center gap-2 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {/* Ícone GitHub inline */}
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
@@ -138,7 +289,7 @@ export default function Login() {
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
                 placeholder="seu@email.com"
                 required
-                disabled={isLoading}
+                disabled={isLoading || isOAuthLoading}
               />
             </div>
           </div>
@@ -165,7 +316,7 @@ export default function Login() {
                 className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
                 placeholder="Sua senha"
                 required
-                disabled={isLoading}
+                disabled={isLoading || isOAuthLoading}
               />
               <button
                 type="button"
@@ -184,7 +335,7 @@ export default function Login() {
           {/* Botão de Login */}
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || isOAuthLoading}
             className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3.5 rounded-xl shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? (
@@ -213,5 +364,4 @@ export default function Login() {
       </motion.div>
     </div>
   )
-
 }
