@@ -1,5 +1,5 @@
 // lib/api.ts 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://apihub-br.duckdns.org'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
 
 // Função para buscar todas as APIs
 export async function fetchAPIs(): Promise<any[]> {

@@ -57,12 +57,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  // components/AuthProvider.tsx - função login CORRIGIDA
+  // components/AuthProvider.tsx
 const login = async (email: string, password: string) => {
   try {
     console.log('🔐 Tentando login:', email)
     
-    const response = await fetch('https://apihub-br.duckdns.org/login', {
+    const response = await fetch('http://localhost:8000/login', {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json' 
@@ -118,7 +118,7 @@ const register = async (email: string, password: string, name: string, acceptTer
   try {
     console.log('📝 Tentando registrar usuário:', { email, name, acceptTerms })
     
-    const response = await fetch('https://apihub-br.duckdns.org/cadastro', {
+    const response = await fetch('http://localhost:8000/cadastro', {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json' 
@@ -161,7 +161,7 @@ const register = async (email: string, password: string, name: string, acceptTer
   const loadFavoritesFromBackend = async (userId: string) => {
     try {
       const response = await fetch(
-        `https://apihub-br.duckdns.org/user-favorites?user_id=${userId}`
+        `http://localhost:8000/user-favorites?user_id=${userId}`
       )
       
       if (response.ok) {
@@ -196,7 +196,7 @@ const register = async (email: string, password: string, name: string, acceptTer
       if (isCurrentlyFavorite) {
         // Remover dos favoritos
         const response = await fetch(
-          `https://apihub-br.duckdns.org/user-favorites?user_id=${user.id}&api_id=${apiId}`,
+          `http://localhost:8000/user-favorites?user_id=${user.id}&api_id=${apiId}`,
           { 
             method: 'DELETE',
             headers: {
@@ -213,7 +213,7 @@ const register = async (email: string, password: string, name: string, acceptTer
         }
       } else {
         // Adicionar aos favoritos
-        const response = await fetch('https://apihub-br.duckdns.org/user-favorites', {
+        const response = await fetch('http://localhost:8000/user-favorites', {
           method: 'POST',
           headers: {
             'Authorization': token ? `Bearer ${token}` : '',

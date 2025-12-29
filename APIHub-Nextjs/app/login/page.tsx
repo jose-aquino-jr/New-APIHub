@@ -2,7 +2,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -17,6 +17,42 @@ export default function Login() {
 
   const { login } = useAuth()
   const router = useRouter()
+
+  useEffect(() => {
+  if (!window.location.hash) return
+
+  const hash = window.location.hash.slice(1)
+  const params = new URLSearchParams(hash)
+
+  const accessToken = params.get('access_token')
+  const refreshToken = params.get('refresh_token')
+
+  if (!accessToken) return
+
+  localStorage.setItem('authToken', accessToken)
+  if (refreshToken) {
+    localStorage.setItem('refreshToken', refreshToken)
+  }
+
+  try {
+    const payload = JSON.parse(atob(accessToken.split('.')[1]))
+
+    localStorage.setItem(
+      'apihub_user',
+      JSON.stringify({
+        id: payload.sub,
+        email: payload.email,
+        name: payload.user_metadata?.full_name || 'Usuário'
+      })
+    )
+
+    // LIMPA URL E ENTRA
+    window.location.replace('/')
+  } catch (e) {
+    console.error('Token inválido', e)
+  }
+}, [])
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -43,10 +79,11 @@ export default function Login() {
     }
   }
 
+
+  
   const handleGoogleLogin = async () => {
     try {
-      alert('Login com Google será implementado em breve!')
-      window.location.href = 'https://apihub-br.duckdns.org/auth/google'
+      window.location.href = 'http://localhost:8000/auth/google'
     } catch (error) {
       console.error('Erro Google:', error)
     }
@@ -54,7 +91,7 @@ export default function Login() {
 
   const handleGithubLogin = async () => {
     try {
-      window.location.href = 'https://apihub-br.duckdns.org/auth/github'
+      window.location.href = 'http://localhost:8000/auth/github'
     } catch (error) {
       console.error('Erro GitHub:', error)
     }

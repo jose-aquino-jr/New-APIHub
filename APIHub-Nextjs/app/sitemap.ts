@@ -21,7 +21,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     const res = await fetch(
-      'https://apihub-br.duckdns.org/public-apis-slug',
+      'http://localhost:8000/public-apis-slug',
       { next: { revalidate: 3600 } }
     )
 
