@@ -44,7 +44,7 @@ export default function AuthCallback() {
       return
     }
 
-    // 🚀 entra no app
+    // entra no app
     router.replace('/')
   }, [router])
 

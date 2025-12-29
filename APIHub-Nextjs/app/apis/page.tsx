@@ -7,7 +7,7 @@ import {
   Search, 
   Star, 
   Shield, 
-  Globe, 
+  Globe,
   Zap, 
   X, 
   Sparkles,

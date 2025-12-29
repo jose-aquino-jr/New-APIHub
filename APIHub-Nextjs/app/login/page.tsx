@@ -83,7 +83,7 @@ export default function Login() {
   
   const handleGoogleLogin = async () => {
     try {
-      window.location.href = 'http://localhost:8000/auth/google'
+      window.location.href = 'https://apihub-br.duckdns.org/auth/google'
     } catch (error) {
       console.error('Erro Google:', error)
     }
@@ -91,7 +91,7 @@ export default function Login() {
 
   const handleGithubLogin = async () => {
     try {
-      window.location.href = 'http://localhost:8000/auth/github'
+      window.location.href = 'https://apihub-br.duckdns.org/auth/github'
     } catch (error) {
       console.error('Erro GitHub:', error)
     }

@@ -30,7 +30,7 @@ export default function Favoritos() {
 
     setIsLoading(true)
     try {
-      const response = await fetch(`http://localhost:8000/user-favorites?user_id=${user.id}`, {
+      const response = await fetch(`https://apihub-br.duckdns.org/user-favorites?user_id=${user.id}`, {
   headers: {
     'Content-Type': 'application/json'
   }
