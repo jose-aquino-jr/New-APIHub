@@ -60,7 +60,7 @@ export default function DashboardPage() {
         // Busca cursos e progresso em paralelo
         const [resCursos, resProgresso] = await Promise.all([
           fetch(`${BACKEND_URL}/cursos`),
-          fetch(`${BACKEND_URL}/cursos-progresso/${user.id}`)
+          fetch(`${BACKEND_URL}/curso-progresso/${user.id}`)
         ])
 
         const dbCursos: DB_Course[] = await resCursos.json()
