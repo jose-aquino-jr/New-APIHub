@@ -45,6 +45,11 @@ export function Header() {
             <Link href="/suporte" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
               Suporte
             </Link>
+            <Link href="/ranking" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
+              Ranking
+            </Link>
+
+
           </nav>
 
           {/* Mobile Menu Button */}
@@ -144,6 +149,16 @@ export function Header() {
               >
                 Suporte
               </Link>
+ <Link 
+                href="/ranking" 
+                className="text-gray-700 hover:text-blue-600 font-medium transition-colors py-2"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Ranking
+              </Link>
+
+
+
               
               {/* Mobile Auth */}
               {user ? (

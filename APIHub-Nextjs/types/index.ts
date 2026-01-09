@@ -28,6 +28,8 @@ export interface API {
   pdf_url?: string  
   language_api?: string 
   status?: string  
+  ranking_position?: number
+  total_ranked?: number
 }
 
 export interface UserFavorite {
