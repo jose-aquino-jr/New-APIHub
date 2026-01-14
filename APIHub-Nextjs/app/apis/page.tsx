@@ -129,6 +129,9 @@ export default function APICatalog() {
   const [categories, setCategories] = useState<string[]>([])
   const { user, favorites, toggleFavorite, isAuthenticated } = useAuth()
 
+
+
+  
   useEffect(() => {
     loadAPIs()
   }, [])
@@ -666,7 +669,13 @@ function APICard({ api, index, isFavorited, onToggleFavorite, user, isAuthentica
           )}
           <span className="flex items-center gap-1 bg-orange-50 px-3 py-1 rounded-full border border-orange-200">
             <Zap className="w-4 h-4 text-orange-500" />
-            <span className="text-orange-700 text-xs font-medium">{api.authentication_type}</span>
+            <span className="text-orange-700 text-xs font-medium">
+              
+             {api.authentication_type === 'none'
+      ? 'Nenhuma'
+      : 'Com Autenticação'}
+              
+              </span>
           </span>
         </div>
 
@@ -699,7 +708,10 @@ function EmptyState({ onClearFilters }: { onClearFilters: () => void }) {
         Limpar Filtros
       </button>
     </motion.div>
+
+    
   )
+  
 }
 
 
