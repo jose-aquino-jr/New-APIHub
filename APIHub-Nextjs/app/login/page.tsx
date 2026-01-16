@@ -1,12 +1,12 @@
-// app/login/page.tsx
+// app/login/page.tsx - VERSÃO COMPLETA
 'use client'
 
 import { motion } from 'framer-motion'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useAuth } from '@/components/AuthProvider'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, Loader2, Github, Chrome } from 'lucide-react'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -14,45 +14,14 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [socialLoading, setSocialLoading] = useState<'google' | 'github' | null>(null)
 
-  const { login } = useAuth()
+  const { login, loginWithGoogle, loginWithGitHub } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
 
-  useEffect(() => {
-  if (!window.location.hash) return
-
-  const hash = window.location.hash.slice(1)
-  const params = new URLSearchParams(hash)
-
-  const accessToken = params.get('access_token')
-  const refreshToken = params.get('refresh_token')
-
-  if (!accessToken) return
-
-  localStorage.setItem('authToken', accessToken)
-  if (refreshToken) {
-    localStorage.setItem('refreshToken', refreshToken)
-  }
-
-  try {
-    const payload = JSON.parse(atob(accessToken.split('.')[1]))
-
-    localStorage.setItem(
-      'apihub_user',
-      JSON.stringify({
-        id: payload.sub,
-        email: payload.email,
-        name: payload.user_metadata?.full_name || 'Usuário'
-      })
-    )
-
-    // LIMPA URL E ENTRA
-    window.location.replace('/')
-  } catch (e) {
-    console.error('Token inválido', e)
-  }
-}, [])
-
+  // Verificar se há erro na URL
+  const urlError = searchParams.get('error')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -66,11 +35,12 @@ export default function Login() {
     }
 
     try {
-      const { error } = await login(email, password)
-      if (error) {
-        setError(error.message)
+      const { error: loginError } = await login(email, password)
+      if (loginError) {
+        setError(loginError.message)
       } else {
-        router.push('/')
+        const redirectTo = searchParams.get('redirect') || '/'
+        router.push(redirectTo)
       }
     } catch (err: any) {
       setError(err.message || 'Erro ao fazer login')
@@ -79,21 +49,25 @@ export default function Login() {
     }
   }
 
-
-  
   const handleGoogleLogin = async () => {
     try {
-      window.location.href = 'https://apihub-br.duckdns.org/auth/google'
+      setSocialLoading('google')
+      loginWithGoogle()
     } catch (error) {
       console.error('Erro Google:', error)
+      setError('Erro ao iniciar login com Google')
+      setSocialLoading(null)
     }
   }
 
   const handleGithubLogin = async () => {
     try {
-      window.location.href = 'https://apihub-br.duckdns.org/auth/github'
+      setSocialLoading('github')
+      loginWithGitHub()
     } catch (error) {
       console.error('Erro GitHub:', error)
+      setError('Erro ao iniciar login com GitHub')
+      setSocialLoading(null)
     }
   }
 
@@ -112,40 +86,52 @@ export default function Login() {
         </div>
 
         {/* Mensagens de erro */}
-        {error && (
+        {(error || urlError) && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
-            <p className="text-red-600 text-sm text-center">{error}</p>
+            <p className="text-red-600 text-sm text-center">
+              {error || 
+                (urlError === 'oauth_failed' && 'Erro na autenticação com OAuth') ||
+                (urlError === 'server_error' && 'Erro no servidor') ||
+                (urlError === 'no_token' && 'Token não recebido') ||
+                (urlError === 'invalid_token' && 'Token inválido') ||
+                'Erro de autenticação'}
+            </p>
           </div>
         )}
 
-        {/* Botões de login social - SIMPLES */}
+        {/* Botões de login social */}
         <div className="mb-6">
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <button
               type="button"
               onClick={handleGoogleLogin}
-              className="flex-1 flex items-center justify-center gap-2 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition"
+              disabled={!!socialLoading}
+              className="flex-1 flex items-center justify-center gap-2 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {/* Ícone Google inline */}
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-              </svg>
-              <span className="text-gray-700">Google</span>
+              {socialLoading === 'google' ? (
+                <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+              ) : (
+                <Chrome className="w-5 h-5 text-gray-700" />
+              )}
+              <span className="text-gray-700">
+                {socialLoading === 'google' ? 'Conectando...' : 'Google'}
+              </span>
             </button>
 
             <button
               type="button"
               onClick={handleGithubLogin}
-              className="flex-1 flex items-center justify-center gap-2 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition"
+              disabled={!!socialLoading}
+              className="flex-1 flex items-center justify-center gap-2 py-3 border border-gray-300 rounded-xl bg-gray-900 text-white hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {/* Ícone GitHub inline */}
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.17 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.167 22 16.418 22 12c0-5.523-4.477-10-10-10z"/>
-              </svg>
-              <span className="text-gray-700">GitHub</span>
+              {socialLoading === 'github' ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Github className="w-5 h-5" />
+              )}
+              <span>
+                {socialLoading === 'github' ? 'Conectando...' : 'GitHub'}
+              </span>
             </button>
           </div>
 
@@ -222,14 +208,14 @@ export default function Login() {
           {/* Botão de Login */}
           <button
             type="submit"
-            disabled={isLoading}
-            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3.5 rounded-xl shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isLoading || !!socialLoading}
+            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3.5 rounded-xl shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {isLoading ? (
-              <div className="flex items-center justify-center">
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
                 Entrando...
-              </div>
+              </>
             ) : (
               'Entrar'
             )}

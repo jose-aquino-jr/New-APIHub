@@ -32,12 +32,13 @@ import {
   Mail,
   Calendar,
   BarChart3,
-  Smartphone
+  Smartphone,
+  Heart
 } from 'lucide-react'
 import { generateSlug, getCategoryFromTags } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
 import { fetchAPIs } from '@/lib/api'
-import type { API, User } from '@/types'
+import type { API } from '@/types'
 
 // Mapeamento de ícones para categorias COMPLETO
 const CATEGORY_ICONS: { [key: string]: any } = {
@@ -116,7 +117,8 @@ function convertToAPI(data: any): API {
     parameters: data.parameters || '',
     response_format: data.response_format || '',
     usage_example: data.usage_example || '',
-    pdf_url: data.pdf_url || ''
+    pdf_url: data.pdf_url || '',
+    rating: data.rating || 0
   }
 }
 
@@ -129,9 +131,6 @@ export default function APICatalog() {
   const [categories, setCategories] = useState<string[]>([])
   const { user, favorites, toggleFavorite, isAuthenticated } = useAuth()
 
-
-
-  
   useEffect(() => {
     loadAPIs()
   }, [])
@@ -504,7 +503,7 @@ interface APIGridProps {
   apis: API[]
   favorites: string[]
   toggleFavorite: (apiId: string) => Promise<void>
-  user: Partial<User> | null 
+  user: any | null 
   isAuthenticated: boolean
 }
 
@@ -538,19 +537,21 @@ interface APICardProps {
   index: number
   isFavorited: boolean
   onToggleFavorite: () => Promise<void>
-  user: Partial<User> | null 
+  user: any | null 
   isAuthenticated: boolean
 }
 
+// APICard component - substitua apenas este componente
 function APICard({ api, index, isFavorited, onToggleFavorite, user, isAuthenticated }: APICardProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [favoriteState, setFavoriteState] = useState(isFavorited)
   const category = getCategoryFromTags(api.tags)
 
-  // Sincroniza o estado local com as props
+  // Sincroniza o estado local com as props - IMPORTANTE!
   useEffect(() => {
+    console.log(`API ${api.id}: isFavorited = ${isFavorited}, favoriteState = ${favoriteState}`)
     setFavoriteState(isFavorited)
-  }, [isFavorited])
+  }, [isFavorited, api.id])
 
   const getCategoryColor = (cat: string) => {
     const colors = {
@@ -599,10 +600,16 @@ function APICard({ api, index, isFavorited, onToggleFavorite, user, isAuthentica
     setIsLoading(true)
     try {
       // Atualiza o estado local imediatamente para feedback visual
-      setFavoriteState(!favoriteState)
+      const newFavoriteState = !favoriteState
+      setFavoriteState(newFavoriteState)
+      
+      console.log(`Tentando ${newFavoriteState ? 'adicionar' : 'remover'} favorito ${api.id}`)
       
       // Chama a função do AuthProvider
       await onToggleFavorite()
+      
+      console.log(`Favorito ${newFavoriteState ? 'adicionado' : 'removido'} com sucesso`)
+      
     } catch (error) {
       console.error('Erro ao favoritar:', error)
       // Reverte o estado se houver erro
@@ -634,15 +641,15 @@ function APICard({ api, index, isFavorited, onToggleFavorite, user, isAuthentica
             disabled={isLoading}
             className={`p-2 rounded-lg transition-all duration-200 transform hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed ${
               favoriteState 
-                ? 'bg-orange-50 text-orange-500 shadow-sm hover:bg-orange-100' 
-                : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-orange-400'
+                ? 'bg-red-50 text-red-500 shadow-sm hover:bg-red-100' 
+                : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-red-400'
             }`}
             title={favoriteState ? "Remover dos favoritos" : "Adicionar aos favoritos"}
           >
             {isLoading ? (
-              <div className="w-4 h-4 border-2 border-gray-300 border-t-orange-500 rounded-full animate-spin" />
+              <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
             ) : (
-              <Star className={`w-4 h-4 ${favoriteState ? 'fill-orange-500' : 'fill-none'}`} />
+              <Heart className={`w-4 h-4 ${favoriteState ? 'fill-red-500 text-red-500' : ''}`} />
             )}
           </button>
         </div>
@@ -653,6 +660,25 @@ function APICard({ api, index, isFavorited, onToggleFavorite, user, isAuthentica
         <p className="text-gray-600 mb-4 line-clamp-3 leading-relaxed">
           {api.description}
         </p>
+
+        {/* Avaliação da API - CORRIGIDO */}
+        {(api.rating && api.rating > 0) && (
+          <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-0.5">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Star
+                  key={i}
+                  className={`w-4 h-4 ${
+                    i <= Math.round(api.rating || 0)
+                      ? 'fill-yellow-400 text-yellow-400'
+                      : 'fill-gray-300 text-gray-300'
+                  }`}
+                />
+              ))}
+            </div>
+            <span className="text-sm text-gray-600">{(api.rating || 0).toFixed(1)}</span>
+          </div>
+        )}
 
         <div className="flex items-center gap-3 text-sm text-gray-500 mb-6 flex-wrap">
           {api.https && (
@@ -670,12 +696,8 @@ function APICard({ api, index, isFavorited, onToggleFavorite, user, isAuthentica
           <span className="flex items-center gap-1 bg-orange-50 px-3 py-1 rounded-full border border-orange-200">
             <Zap className="w-4 h-4 text-orange-500" />
             <span className="text-orange-700 text-xs font-medium">
-              
-             {api.authentication_type === 'none'
-      ? 'Nenhuma'
-      : 'Com Autenticação'}
-              
-              </span>
+              {api.authentication_type === 'none' ? 'Nenhuma' : 'Com Autenticação'}
+            </span>
           </span>
         </div>
 
@@ -708,10 +730,5 @@ function EmptyState({ onClearFilters }: { onClearFilters: () => void }) {
         Limpar Filtros
       </button>
     </motion.div>
-
-    
   )
-  
 }
-
-

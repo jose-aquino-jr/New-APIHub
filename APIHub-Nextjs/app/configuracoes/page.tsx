@@ -127,10 +127,6 @@ export default function Configuracoes() {
               </div>
             </div>
             <div className="space-y-3">
-              <button className="w-full text-left p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all">
-                <div className="font-medium text-gray-800">Exportar dados</div>
-                <div className="text-sm text-gray-600">Baixe uma cópia dos seus dados</div>
-              </button>
               <button className="w-full text-left p-3 rounded-lg border border-gray-200 hover:border-red-300 hover:bg-red-50 transition-all text-red-600">
                 <div className="font-medium">Excluir conta</div>
                 <div className="text-sm">Remover permanentemente sua conta</div>

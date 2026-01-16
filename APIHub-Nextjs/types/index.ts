@@ -30,6 +30,7 @@ export interface API {
   status?: string  
   ranking_position?: number
   total_ranked?: number
+  rating?: number
 }
 
 export interface UserFavorite {
