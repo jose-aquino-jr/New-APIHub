@@ -31,7 +31,7 @@ export default function BotaoConcluir({ cursoId, moduloId, blocoId, proximaAulaU
     }
 
     try {
-      const res = await fetch('http://localhost:8000/curso-progresso-detalhe', {
+      const res = await fetch('https://apihub-br.duckdns.org/curso-progresso-detalhe', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

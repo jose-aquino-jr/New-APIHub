@@ -144,7 +144,7 @@ export default function APIDetail({ params }: PageProps) {
         return
       }
       
-      const response = await fetch(`http://localhost:8000/avaliacao/user/${apiId}`, {
+      const response = await fetch(`https://apihub-br.duckdns.org/avaliacao/user/${apiId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -200,7 +200,7 @@ export default function APIDetail({ params }: PageProps) {
     try {
       setLoadingStats(true)
       
-      const response = await fetch(`http://localhost:8000/avaliacao/stats/${apiId}`)
+      const response = await fetch(`https://apihub-br.duckdns.org/avaliacao/stats/${apiId}`)
       
       console.log('DEBUG loadRatingStats response:', {
         status: response.status,
@@ -274,7 +274,7 @@ export default function APIDetail({ params }: PageProps) {
       token: token?.substring(0, 20) + '...'
     })
 
-    const response = await fetch('http://localhost:8000/api-reports', {
+    const response = await fetch('https://apihub-br.duckdns.org/api-reports', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -360,7 +360,7 @@ export default function APIDetail({ params }: PageProps) {
     setMessage(null)
 
     try {
-      const response = await fetch('http://localhost:8000/avaliacao', {
+      const response = await fetch('https://apihub-br.duckdns.org/avaliacao', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -41,7 +41,7 @@ export default function Favoritos() {
     setIsLoading(true)
     try {
       // Buscar favoritos do backend com autenticação
-      const response = await fetch('http://localhost:8000/user-favorites', {
+      const response = await fetch('https://apihub-br.duckdns.org/user-favorites', {
         headers: {
           'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json'

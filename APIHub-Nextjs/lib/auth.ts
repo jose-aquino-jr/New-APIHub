@@ -1,7 +1,7 @@
 // lib/auth.ts
 import { User } from '@/types'
 
-const BACKEND_URL = 'http://localhost:8000'
+const BACKEND_URL = 'https://apihub-br.duckdns.org'
 
 export async function login(email: string, password: string): Promise<{ user: User | null; error: any }> {
   try {

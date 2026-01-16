@@ -43,7 +43,7 @@ export default function RankingPage() {
       setLoading(true)
       setError(null)
       
-      const response = await fetch('http://localhost:8000/ranking')
+      const response = await fetch('https://apihub-br.duckdns.org/ranking')
       
       if (!response.ok) {
         throw new Error(`Erro HTTP ${response.status}: ${response.statusText}`)
