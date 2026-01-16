@@ -1,4 +1,4 @@
-// app/auth/callback/page.tsx
+// app/auth/callback/page.tsx - VERSÃO SIMPLIFICADA
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -13,96 +13,165 @@ export default function AuthCallback() {
   useEffect(() => {
     const processCallback = async () => {
       try {
-        // Verificar se temos parâmetros na URL
+        console.log('🔍 Iniciando processamento do callback OAuth')
+        
+        // Obter URL de redirecionamento salva
+        const redirectPath = localStorage.getItem('oauth_redirect') || '/'
+        localStorage.removeItem('oauth_redirect') // Limpar após usar
+        
+        // Extrair parâmetros da URL
         const urlParams = new URLSearchParams(window.location.search)
         const accessToken = urlParams.get('access_token')
         const refreshToken = urlParams.get('refresh_token')
         const error = urlParams.get('error')
-
-        console.log('Auth Callback - Parâmetros:', {
-          accessToken: !!accessToken,
-          refreshToken: !!refreshToken,
-          error
+        
+        console.log('🔍 Parâmetros recebidos:', {
+          hasAccessToken: !!accessToken,
+          hasRefreshToken: !!refreshToken,
+          error: error,
+          redirectPath: redirectPath
         })
 
         // Se tem erro
         if (error) {
+          console.error('❌ Erro no OAuth:', error)
           setStatus('error')
           setMessage(`Erro: ${error}`)
           setTimeout(() => {
             router.push(`/login?error=${encodeURIComponent(error)}`)
-          }, 3000)
+          }, 2000)
           return
         }
 
-        // Se não tem token
+        // Se não tem token, verificar no hash (formato antigo)
         if (!accessToken) {
+          const hash = window.location.hash.substring(1) // Remove o #
+          const hashParams = new URLSearchParams(hash)
+          const hashAccessToken = hashParams.get('access_token')
+          const hashRefreshToken = hashParams.get('refresh_token')
+          
+          if (hashAccessToken) {
+            console.log('✅ Token encontrado no hash')
+            await processToken(hashAccessToken, hashRefreshToken, redirectPath)
+            return
+          }
+          
           setStatus('error')
           setMessage('Token de acesso não recebido')
           setTimeout(() => {
-            router.push('/login?error=no_token')
-          }, 3000)
+            router.push(`/login?error=no_token`)
+          }, 2000)
           return
         }
 
+        // Processar token
+        await processToken(accessToken, refreshToken, redirectPath)
+
+      } catch (error) {
+        console.error('❌ Erro crítico no callback:', error)
+        setStatus('error')
+        setMessage('Erro durante a autenticação')
+        setTimeout(() => {
+          router.push('/login?error=callback_error')
+        }, 2000)
+      }
+    }
+
+    const processToken = async (accessToken: string, refreshToken: string | null, redirectPath: string) => {
+      try {
+        console.log('🔧 Processando token...')
+        
         // Salvar tokens
         localStorage.setItem('authToken', accessToken)
         if (refreshToken) {
           localStorage.setItem('refreshToken', refreshToken)
         }
 
-        // Decodificar token JWT para obter dados básicos
+        // Tentar obter dados do usuário do backend
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://apihub-br.duckdns.org'
+        
         try {
-          const tokenParts = accessToken.split('.')
-          if (tokenParts.length === 3) {
-            const payload = JSON.parse(atob(tokenParts[1]))
-            
-            const userData = {
-              id: payload.sub,
-              email: payload.email,
-              name: payload.user_metadata?.name || 
-                    payload.user_metadata?.full_name || 
-                    payload.email?.split('@')[0] || 
-                    'Usuário',
-              avatar_url: payload.user_metadata?.avatar_url,
-              provider: payload.app_metadata?.provider
+          console.log('🔄 Buscando dados da sessão no backend...')
+          const response = await fetch(`${API_BASE_URL}/auth/session`, {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
             }
+          })
+          
+          if (response.ok) {
+            const data = await response.json()
+            console.log('✅ Resposta do backend:', data)
             
-            localStorage.setItem('apihub_user', JSON.stringify(userData))
-            
-            setStatus('success')
-            setMessage('Login realizado com sucesso!')
-            
-            // Redirecionar após 2 segundos
-            setTimeout(() => {
-              // Tentar pegar redirect da URL ou ir para home
-              const urlParams = new URLSearchParams(window.location.search)
-              const redirectTo = urlParams.get('redirect') || '/'
+            if (data.success && data.data?.user) {
+              // Salvar dados completos do backend
+              const userData = {
+                id: data.data.user.id,
+                email: data.data.user.email,
+                name: data.data.user.name || 'Usuário',
+                accept_terms: data.data.user.accept_terms,
+                avatar_url: data.data.user.avatar_url,
+                provider: data.data.user.provider
+              }
               
-              // Limpar URL antes de redirecionar
-              window.history.replaceState({}, document.title, '/auth/callback')
+              localStorage.setItem('apihub_user', JSON.stringify(userData))
               
-              router.push(redirectTo)
-            }, 2000)
+              setStatus('success')
+              setMessage('Login realizado com sucesso!')
+              
+              // Limpar URL e redirecionar
+              setTimeout(() => {
+                window.history.replaceState({}, document.title, '/auth/callback')
+                router.push(redirectPath)
+              }, 1000)
+              return
+            }
           } else {
-            throw new Error('Token inválido')
+            console.warn('⚠️ Backend não respondeu com sucesso:', response.status)
           }
-        } catch (decodeError) {
-          console.error('Erro ao decodificar token:', decodeError)
-          setStatus('error')
-          setMessage('Token inválido')
+        } catch (apiError) {
+          console.warn('⚠️ Não foi possível conectar ao backend, usando token JWT:', apiError)
+        }
+
+        // Fallback: Decodificar token JWT
+        console.log('🔄 Decodificando token JWT...')
+        const tokenParts = accessToken.split('.')
+        if (tokenParts.length === 3) {
+          const payload = JSON.parse(atob(tokenParts[1]))
+          console.log('✅ Payload JWT:', payload)
+          
+          const userData = {
+            id: payload.sub || `user_${Date.now()}`,
+            email: payload.email || 'usuario@exemplo.com',
+            name: payload.user_metadata?.name || 
+                  payload.user_metadata?.full_name || 
+                  payload.email?.split('@')[0] || 
+                  'Usuário',
+            avatar_url: payload.user_metadata?.avatar_url,
+            provider: payload.app_metadata?.provider || 'oauth'
+          }
+          
+          localStorage.setItem('apihub_user', JSON.stringify(userData))
+          
+          setStatus('success')
+          setMessage('Login realizado com sucesso!')
+          
+          // Limpar URL e redirecionar
           setTimeout(() => {
-            router.push('/login?error=invalid_token')
-          }, 3000)
+            window.history.replaceState({}, document.title, '/auth/callback')
+            router.push(redirectPath)
+          }, 1000)
+        } else {
+          throw new Error('Token JWT inválido')
         }
 
       } catch (error) {
-        console.error('Erro no callback:', error)
+        console.error('❌ Erro ao processar token:', error)
         setStatus('error')
-        setMessage('Erro durante a autenticação')
+        setMessage('Erro ao processar token de acesso')
         setTimeout(() => {
-          router.push('/login?error=callback_error')
-        }, 3000)
+          router.push('/login?error=token_error')
+        }, 2000)
       }
     }
 
@@ -110,45 +179,54 @@ export default function AuthCallback() {
   }, [router])
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border p-8 text-center">
-        <div className="mb-6">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 p-4">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl border border-gray-200 p-8 text-center">
+        <div className="mb-8">
           {status === 'loading' && (
-            <div className="w-16 h-16 mx-auto mb-4 bg-blue-50 rounded-full flex items-center justify-center">
-              <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+            <div className="w-20 h-20 mx-auto mb-6 bg-blue-50 rounded-full flex items-center justify-center animate-pulse">
+              <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
             </div>
           )}
           {status === 'success' && (
-            <div className="w-16 h-16 mx-auto mb-4 bg-green-50 rounded-full flex items-center justify-center">
-              <Check className="w-8 h-8 text-green-600" />
+            <div className="w-20 h-20 mx-auto mb-6 bg-green-50 rounded-full flex items-center justify-center animate-bounce">
+              <Check className="w-10 h-10 text-green-600" />
             </div>
           )}
           {status === 'error' && (
-            <div className="w-16 h-16 mx-auto mb-4 bg-red-50 rounded-full flex items-center justify-center">
-              <X className="w-8 h-8 text-red-600" />
+            <div className="w-20 h-20 mx-auto mb-6 bg-red-50 rounded-full flex items-center justify-center">
+              <X className="w-10 h-10 text-red-600" />
             </div>
           )}
           
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            {status === 'loading' && 'Processando...'}
-            {status === 'success' && 'Sucesso!'}
-            {status === 'error' && 'Erro'}
+          <h1 className="text-3xl font-bold text-gray-900 mb-3">
+            {status === 'loading' && 'Autenticando...'}
+            {status === 'success' && 'Login bem-sucedido!'}
+            {status === 'error' && 'Ocorreu um erro'}
           </h1>
           
-          <p className="text-gray-600 mb-6">{message}</p>
+          <p className="text-lg text-gray-700 mb-6">{message}</p>
           
           {status === 'loading' && (
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-blue-600 h-2 rounded-full animate-pulse"></div>
+            <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+              <div className="bg-gradient-to-r from-blue-500 to-blue-600 h-2.5 rounded-full animate-[loading_2s_ease-in-out_infinite]" 
+                   style={{ animation: 'loading 2s ease-in-out infinite' }}></div>
             </div>
           )}
         </div>
         
-        <div className="text-sm text-gray-500">
-          {status === 'loading' && 'Aguarde enquanto finalizamos seu login...'}
-          {status === 'success' && 'Você será redirecionado automaticamente...'}
-          {status === 'error' && 'Redirecionando para a página de login...'}
+        <div className="text-sm text-gray-600 font-medium">
+          {status === 'loading' && 'Por favor, aguarde um momento...'}
+          {status === 'success' && 'Redirecionando você de volta...'}
+          {status === 'error' && 'Você será redirecionado para a página de login...'}
         </div>
+        
+        <style jsx>{`
+          @keyframes loading {
+            0% { width: 0%; }
+            50% { width: 70%; }
+            100% { width: 100%; }
+          }
+        `}</style>
       </div>
     </div>
   )

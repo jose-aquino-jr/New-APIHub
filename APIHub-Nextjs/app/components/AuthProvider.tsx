@@ -1,4 +1,4 @@
-// components/AuthProvider.tsx - VERSÃO COMPLETA E CORRIGIDA
+// components/AuthProvider.tsx - VERSÃO OTIMIZADA
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
@@ -49,6 +49,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://apihub-br.duckdns.org'
+const FRONTEND_URL = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -121,7 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('authToken')
     localStorage.removeItem('refreshToken')
     
-    Object.keys(localStorage).forEach(key => {
+    Object.keys(localStorage).forEach((key: string) => {
       if (key.startsWith('favorites_')) {
         localStorage.removeItem(key)
       }
@@ -287,7 +288,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }))
         
         setFavoriteObjects(favoritesData)
-        setFavorites(favoritesData.map((fav: Favorite) => fav.api_id)) // Corrigido aqui
+        setFavorites(favoritesData.map((fav: Favorite) => fav.api_id))
       }
       
     } catch (error: any) {
@@ -341,7 +342,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw new Error(data.message || 'Erro ao remover favorito')
         }
         
-        // CORREÇÃO COMPLETA: Tipagem explícita em todos os parâmetros
         setFavoriteObjects(prev => prev.filter((fav: Favorite) => fav.api_id !== apiId))
         setFavorites(prev => prev.filter((id: string) => id !== apiId))
         
@@ -409,134 +409,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const loginWithGitHub = () => {
-    window.location.href = `${API_BASE_URL}/auth/github`
+    // Guardar a página atual para redirecionamento posterior
+    const currentPath = window.location.pathname
+    localStorage.setItem('oauth_redirect', currentPath)
+    
+    // URL de callback configurada no backend
+    const callbackUrl = `${FRONTEND_URL}/auth/callback`
+    
+    // Redirecionar para o backend OAuth
+    window.location.href = `${API_BASE_URL}/auth/github?redirect_uri=${encodeURIComponent(callbackUrl)}`
   }
 
   const loginWithGoogle = () => {
-    window.location.href = `${API_BASE_URL}/auth/google`
+    // Guardar a página atual para redirecionamento posterior
+    const currentPath = window.location.pathname
+    localStorage.setItem('oauth_redirect', currentPath)
+    
+    // URL de callback configurada no backend
+    const callbackUrl = `${FRONTEND_URL}/auth/callback`
+    
+    // Redirecionar para o backend OAuth
+    window.location.href = `${API_BASE_URL}/auth/google?redirect_uri=${encodeURIComponent(callbackUrl)}`
   }
 
   const handleOAuthCallback = async (): Promise<boolean> => {
-    try {
-      console.log('DEBUG handleOAuthCallback - URL atual:', window.location.href)
-      
-      // Verificar se temos parâmetros de query
-      const searchParams = new URLSearchParams(window.location.search)
-      const accessToken = searchParams.get('access_token')
-      const refreshToken = searchParams.get('refresh_token')
-      const error = searchParams.get('error')
-      
-      if (error) {
-        console.error('Erro no callback OAuth:', error)
-        router.replace(`/login?error=${encodeURIComponent(error)}`)
-        return false
-      }
-      
-      // Se não tem parâmetros de query, verificar hash (formato do Supabase)
-      if (!accessToken) {
-        const hash = window.location.hash.replace('#', '')
-        const hashParams = new URLSearchParams(hash)
-        const hashAccessToken = hashParams.get('access_token')
-        const hashRefreshToken = hashParams.get('refresh_token')
-        
-        if (hashAccessToken) {
-          console.log('DEBUG: Token encontrado no hash')
-          localStorage.setItem('authToken', hashAccessToken)
-          if (hashRefreshToken) {
-            localStorage.setItem('refreshToken', hashRefreshToken)
-          }
-          
-          // Decodificar token JWT para obter dados do usuário
-          try {
-            const tokenParts = hashAccessToken.split('.')
-            if (tokenParts.length === 3) {
-              const payload = JSON.parse(atob(tokenParts[1]))
-              
-              const userData = {
-                id: payload.sub,
-                email: payload.email,
-                name: payload.user_metadata?.name || 
-                      payload.user_metadata?.full_name || 
-                      payload.email?.split('@')[0] || 
-                      'Usuário',
-                avatar_url: payload.user_metadata?.avatar_url,
-                provider: payload.app_metadata?.provider
-              }
-              
-              localStorage.setItem('apihub_user', JSON.stringify(userData))
-              setUser(userData)
-              setToken(hashAccessToken)
-              
-              // Limpar URL
-              window.history.replaceState({}, document.title, window.location.pathname)
-              
-              // Carregar favoritos
-              await loadFavoritesFromBackend(userData.id)
-              
-              return true
-            }
-          } catch (decodeError) {
-            console.error('Erro ao decodificar token:', decodeError)
-          }
-        }
-      } else {
-        // Usar tokens dos parâmetros de query
-        console.log('DEBUG: Token encontrado nos query params')
-        localStorage.setItem('authToken', accessToken)
-        if (refreshToken) {
-          localStorage.setItem('refreshToken', refreshToken)
-        }
-        
-        // Buscar dados do usuário do backend
-        try {
-          const response = await fetch(`${API_BASE_URL}/auth/session`, {
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Content-Type': 'application/json'
-            }
-          })
-          
-          if (response.ok) {
-            const data = await response.json()
-            if (data.success && data.data?.user) {
-              localStorage.setItem('apihub_user', JSON.stringify(data.data.user))
-              setUser(data.data.user)
-              setToken(accessToken)
-              
-              await loadFavoritesFromBackend(data.data.user.id)
-              
-              // Limpar URL
-              window.history.replaceState({}, document.title, window.location.pathname)
-              
-              return true
-            }
-          }
-        } catch (sessionError) {
-          console.error('Erro ao buscar dados da sessão:', sessionError)
-        }
-      }
-      
-      console.log('DEBUG: Nenhum token válido encontrado')
-      router.replace('/login?error=oauth_failed')
-      return false
-      
-    } catch (error) {
-      console.error('Erro no callback OAuth:', error)
-      router.replace('/login?error=callback_error')
-      return false
-    }
+    // Esta função não é mais usada, a página /auth/callback cuida disso
+    return false
   }
-
-  useEffect(() => {
-    // Verificar se estamos na página de callback
-    if (pathname === '/auth/callback') {
-      handleOAuthCallback().then(success => {
-        if (success) {
-          router.replace('/')
-        }
-      })
-    }
-  }, [pathname])
 
   const logout = () => {
     const token = localStorage.getItem('authToken')
