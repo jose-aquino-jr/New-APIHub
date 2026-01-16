@@ -1,4 +1,4 @@
-// components/AuthProvider.tsx - VERSÃO CORRIGIDA COM OAUTH
+// components/AuthProvider.tsx - CORRIGIDO PARA HASH
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
@@ -60,91 +60,100 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  // Verificar se há código de callback na URL (OAuth)
+  // Verificar se há tokens no HASH da URL (OAuth callback)
   useEffect(() => {
-    const code = searchParams.get('code')
-    const error = searchParams.get('error')
-    
-    if (code || error) {
-      console.log('🔐 Processando callback OAuth...')
-      processOAuthCallback()
+    const checkHashForTokens = () => {
+      // Obter hash da URL (parte após #)
+      const hash = window.location.hash.substring(1)
+      
+      if (hash && hash.includes('access_token')) {
+        console.log('🔐 Token encontrado no hash da URL')
+        processTokensFromHash(hash)
+      }
     }
-  }, [searchParams])
+    
+    checkHashForTokens()
+  }, [])
 
-  const processOAuthCallback = async () => {
+  const processTokensFromHash = (hash: string) => {
     try {
-      const code = searchParams.get('code')
-      const error = searchParams.get('error')
-      const errorDescription = searchParams.get('error_description')
+      console.log('🔄 Processando tokens do hash...')
       
-      console.log('📥 Parâmetros OAuth:', { 
-        code: !!code, 
-        error, 
-        errorDescription 
+      // Converter hash para objeto
+      const hashParams = new URLSearchParams(hash)
+      const access_token = hashParams.get('access_token')
+      const refresh_token = hashParams.get('refresh_token')
+      const expires_at = hashParams.get('expires_at')
+      
+      console.log('📦 Tokens extraídos:', {
+        access_token: !!access_token,
+        refresh_token: !!refresh_token,
+        expires_at
       })
       
-      if (error) {
-        console.error('❌ Erro OAuth:', errorDescription || error)
-        // Limpar parâmetros da URL
-        window.history.replaceState(null, '', '/login')
-        throw new Error(errorDescription || error)
+      if (!access_token) {
+        console.error('❌ Access token não encontrado no hash')
+        return
       }
       
-      if (!code) {
-        console.error('❌ Código não recebido')
-        window.history.replaceState(null, '', '/login')
-        throw new Error('Código de autorização não recebido')
-      }
+      // Decodificar JWT para obter dados do usuário
+      const payload = JSON.parse(atob(access_token.split('.')[1]))
       
-      // Trocar código por token
-      console.log('🔄 Trocando código por token...')
-      
-      const response = await fetch(`${API_BASE_URL}/auth/exchange-code`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ code })
+      console.log('📋 Payload do token:', {
+        sub: payload.sub,
+        email: payload.email,
+        name: payload.user_metadata?.name || payload.user_metadata?.full_name
       })
       
-      const data = await response.json()
-      
-      if (!response.ok || !data.success) {
-        console.error('❌ Erro na troca de código:', data.message)
-        throw new Error(data.message || 'Erro na autenticação')
+      const userData = {
+        id: payload.sub,
+        email: payload.email,
+        name: payload.user_metadata?.name || 
+              payload.user_metadata?.full_name || 
+              payload.email?.split('@')[0] || 
+              'Usuário',
+        avatar_url: payload.user_metadata?.avatar_url || 
+                   payload.user_metadata?.picture,
+        provider: payload.app_metadata?.provider,
+        accept_terms: false
       }
       
-      console.log('✅ Token recebido para:', data.data.user.email)
+      console.log('✅ Usuário extraído do token:', userData.email)
       
-      // Salvar dados
-      const { access_token, user: userData } = data.data
-      
+      // Salvar no localStorage
       localStorage.setItem('authToken', access_token)
+      if (refresh_token) {
+        localStorage.setItem('refreshToken', refresh_token)
+      }
       localStorage.setItem('apihub_user', JSON.stringify(userData))
       
+      // Atualizar estado
       setToken(access_token)
       setUser(userData)
       
-      // Carregar favoritos
-      await loadFavoritesFromBackend(userData.id)
+      // Carregar favoritos em background
+      setTimeout(async () => {
+        try {
+          await loadFavoritesFromBackend(userData.id)
+        } catch (error) {
+          console.warn('Não foi possível carregar favoritos:', error)
+        }
+      }, 500)
       
-      // Limpar URL
-      window.history.replaceState(null, '', '/')
+      // Limpar hash da URL
+      window.history.replaceState(null, '', window.location.pathname)
       
-      // Redirecionar para página salva ou home
+      console.log('🚀 Login via OAuth concluído com sucesso!')
+      
+      // Redirecionar para home
       const redirectTo = localStorage.getItem('redirectAfterLogin') || '/'
       localStorage.removeItem('redirectAfterLogin')
-      
-      console.log('🚀 Redirecionando para:', redirectTo)
       router.replace(redirectTo)
       
     } catch (error: any) {
-      console.error('🔥 Erro no callback OAuth:', error)
-      // Limpar URL
+      console.error('🔥 Erro ao processar tokens do hash:', error)
       window.history.replaceState(null, '', '/login')
-      
-      // Redirecionar para login com erro
-      router.replace(`/login?error=oauth_callback&message=${encodeURIComponent(error.message)}`)
+      router.replace('/login?error=hash_processing_error')
     }
   }
 
