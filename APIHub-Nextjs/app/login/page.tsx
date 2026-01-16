@@ -1,4 +1,3 @@
-// app/login/page.tsx - VERSÃO COMPLETA
 'use client'
 
 import { motion } from 'framer-motion'
@@ -49,23 +48,27 @@ export default function Login() {
     }
   }
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleLogin = () => {
     try {
       setSocialLoading('google')
+      setError('')
       loginWithGoogle()
+      // A redireção acontece automaticamente dentro da função loginWithGoogle
     } catch (error) {
-      console.error('Erro Google:', error)
+      console.error('Erro ao iniciar login com Google:', error)
       setError('Erro ao iniciar login com Google')
       setSocialLoading(null)
     }
   }
 
-  const handleGithubLogin = async () => {
+  const handleGithubLogin = () => {
     try {
       setSocialLoading('github')
+      setError('')
       loginWithGitHub()
+      // A redireção acontece automaticamente dentro da função loginWithGitHub
     } catch (error) {
-      console.error('Erro GitHub:', error)
+      console.error('Erro ao iniciar login com GitHub:', error)
       setError('Erro ao iniciar login com GitHub')
       setSocialLoading(null)
     }
@@ -94,6 +97,9 @@ export default function Login() {
                 (urlError === 'server_error' && 'Erro no servidor') ||
                 (urlError === 'no_token' && 'Token não recebido') ||
                 (urlError === 'invalid_token' && 'Token inválido') ||
+                (urlError === 'session_failed' && 'Falha ao criar sessão') ||
+                (urlError === 'no_code' && 'Código de autorização não recebido') ||
+                (urlError === 'callback_crash' && 'Erro no processo de callback') ||
                 'Erro de autenticação'}
             </p>
           </div>
