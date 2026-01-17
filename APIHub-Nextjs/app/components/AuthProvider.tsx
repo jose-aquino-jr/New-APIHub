@@ -1,8 +1,8 @@
-// components/AuthProvider.tsx - CORRIGIDO PARA HASH
+// components/AuthProvider.tsx - VERSÃO COMPLETA CORRIGIDA
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 
 interface User {
   id: string
@@ -51,6 +51,91 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 // Configuração da API base
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://apihub-br.duckdns.org'
 
+// Função para extrair tokens do hash
+const extractTokensFromHash = (hash: string) => {
+  try {
+    // Remover # do início
+    const hashWithoutHash = hash.replace(/^#/, '')
+    
+    // Tentar diferentes padrões de parsing
+    let params: Record<string, string | null> = {}
+    
+    // Padrão 1: URLSearchParams (access_token=...&refresh_token=...)
+    if (hashWithoutHash.includes('=')) {
+      const urlParams = new URLSearchParams(hashWithoutHash)
+      params = {
+        access_token: urlParams.get('access_token'),
+        refresh_token: urlParams.get('refresh_token'),
+        expires_at: urlParams.get('expires_at'),
+        token_type: urlParams.get('token_type'),
+        provider_token: urlParams.get('provider_token'),
+        provider_refresh_token: urlParams.get('provider_refresh_token')
+      }
+    }
+    
+    // Log para debug
+    console.log('🔍 Tokens extraídos do hash:', {
+      hasAccessToken: !!params.access_token,
+      hasProviderToken: !!params.provider_token,
+      params: Object.keys(params).filter(key => params[key])
+    })
+    
+    return params
+    
+  } catch (error) {
+    console.error('❌ Erro ao extrair tokens do hash:', error)
+    return {}
+  }
+}
+
+// Função para decodificar JWT
+const decodeJWT = (token: string) => {
+  try {
+    // Verificar se é um token JWT válido
+    if (!token || token.split('.').length !== 3) {
+      console.error('❌ Token não é um JWT válido')
+      return null
+    }
+    
+    const base64Url = token.split('.')[1]
+    if (!base64Url) {
+      console.error('❌ Parte do payload não encontrada no token')
+      return null
+    }
+    
+    // Corrigir padding para base64
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+    const padLength = 4 - (base64.length % 4)
+    const paddedBase64 = padLength < 4 ? base64 + '='.repeat(padLength) : base64
+    
+    try {
+      // Decodificar base64
+      const jsonPayload = atob(paddedBase64)
+      const payload = JSON.parse(jsonPayload)
+      return payload
+    } catch (parseError) {
+      console.error('❌ Erro ao parsear payload do JWT:', parseError)
+      
+      // Tentar alternativa com decodeURIComponent
+      try {
+        const jsonPayload = decodeURIComponent(
+          atob(paddedBase64)
+            .split('')
+            .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+            .join('')
+        )
+        return JSON.parse(jsonPayload)
+      } catch (altError) {
+        console.error('❌ Erro na alternativa de parse:', altError)
+        return null
+      }
+    }
+  } catch (error) {
+    console.error('❌ Erro ao decodificar JWT:', error)
+    return null
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [token, setToken] = useState<string | null>(null)
@@ -58,77 +143,121 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [favoriteObjects, setFavoriteObjects] = useState<Favorite[]>([])
   const [favorites, setFavorites] = useState<string[]>([])
   const router = useRouter()
-  const searchParams = useSearchParams()
 
   // Verificar se há tokens no HASH da URL (OAuth callback)
   useEffect(() => {
     const checkHashForTokens = () => {
       // Obter hash da URL (parte após #)
-      const hash = window.location.hash.substring(1)
+      const hash = window.location.hash
       
-      if (hash && hash.includes('access_token')) {
+      console.log('🔍 Verificando hash da URL:', hash.substring(0, 100) + (hash.length > 100 ? '...' : ''))
+      
+      if (hash && (hash.includes('access_token') || hash.includes('provider_token'))) {
         console.log('🔐 Token encontrado no hash da URL')
         processTokensFromHash(hash)
       }
     }
     
+    // Executar imediatamente
     checkHashForTokens()
+    
+    // Adicionar listener para quando a página carregar completamente
+    window.addEventListener('load', checkHashForTokens)
+    
+    return () => {
+      window.removeEventListener('load', checkHashForTokens)
+    }
   }, [])
 
   const processTokensFromHash = (hash: string) => {
     try {
       console.log('🔄 Processando tokens do hash...')
       
-      // Converter hash para objeto
-      const hashParams = new URLSearchParams(hash)
-      const access_token = hashParams.get('access_token')
-      const refresh_token = hashParams.get('refresh_token')
-      const expires_at = hashParams.get('expires_at')
+      // Extrair tokens do hash
+      const tokens = extractTokensFromHash(hash)
       
-      console.log('📦 Tokens extraídos:', {
-        access_token: !!access_token,
-        refresh_token: !!refresh_token,
-        expires_at
-      })
+      console.log('📦 Tokens extraídos detalhado:', tokens)
       
-      if (!access_token) {
-        console.error('❌ Access token não encontrado no hash')
-        return
+      // Priorizar provider_token (GitHub), senão access_token (Google)
+      const accessToken = tokens.provider_token || tokens.access_token
+      
+      if (!accessToken) {
+        console.error('❌ Nenhum token válido encontrado no hash')
+        console.log('Tokens disponíveis:', JSON.stringify(tokens, null, 2))
+        throw new Error('Nenhum token válido encontrado')
       }
       
       // Decodificar JWT para obter dados do usuário
-      const payload = JSON.parse(atob(access_token.split('.')[1]))
+      const payload = decodeJWT(accessToken)
+      
+      if (!payload) {
+        console.error('❌ Payload decodificado:', payload)
+        throw new Error('Não foi possível decodificar o token JWT')
+      }
       
       console.log('📋 Payload do token:', {
         sub: payload.sub,
         email: payload.email,
-        name: payload.user_metadata?.name || payload.user_metadata?.full_name
+        name: payload.user_metadata?.name || payload.user_metadata?.full_name || payload.name,
+        app_metadata: payload.app_metadata
       })
       
+      // Determinar provedor
+      let provider = payload.app_metadata?.provider
+      if (!provider) {
+        if (tokens.provider_token) {
+          provider = 'github' // Se tem provider_token, é GitHub
+        } else if (payload.email?.includes('@gmail.com') || payload.iss?.includes('google')) {
+          provider = 'google'
+        } else {
+          provider = 'email' // fallback
+        }
+      }
+      
+      console.log('🎯 Provedor identificado:', provider)
+      
+      // Extrair nome do usuário
+      let userName = payload.user_metadata?.name || 
+                    payload.user_metadata?.full_name || 
+                    payload.name
+      
+      // Para GitHub, usar user_name se disponível
+      if (provider === 'github' && payload.user_metadata?.user_name) {
+        userName = payload.user_metadata.user_name
+      }
+      
+      // Se ainda não tem nome, usar email
+      if (!userName && payload.email) {
+        userName = payload.email.split('@')[0]
+      }
+      
       const userData = {
-        id: payload.sub,
-        email: payload.email,
-        name: payload.user_metadata?.name || 
-              payload.user_metadata?.full_name || 
-              payload.email?.split('@')[0] || 
-              'Usuário',
+        id: payload.sub || `temp_${Date.now()}`,
+        email: payload.email || 'usuário@email.com',
+        name: userName || 'Usuário',
         avatar_url: payload.user_metadata?.avatar_url || 
-                   payload.user_metadata?.picture,
-        provider: payload.app_metadata?.provider,
+                   payload.user_metadata?.picture ||
+                   payload.avatar_url,
+        provider: provider,
         accept_terms: false
       }
       
-      console.log('✅ Usuário extraído do token:', userData.email)
+      console.log('✅ Usuário extraído do token:', {
+        id: userData.id,
+        email: userData.email,
+        name: userData.name,
+        provider: userData.provider
+      })
       
       // Salvar no localStorage
-      localStorage.setItem('authToken', access_token)
-      if (refresh_token) {
-        localStorage.setItem('refreshToken', refresh_token)
+      localStorage.setItem('authToken', accessToken)
+      if (tokens.refresh_token) {
+        localStorage.setItem('refreshToken', tokens.refresh_token)
       }
       localStorage.setItem('apihub_user', JSON.stringify(userData))
       
       // Atualizar estado
-      setToken(access_token)
+      setToken(accessToken)
       setUser(userData)
       
       // Carregar favoritos em background
@@ -145,15 +274,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       console.log('🚀 Login via OAuth concluído com sucesso!')
       
-      // Redirecionar para home
-      const redirectTo = localStorage.getItem('redirectAfterLogin') || '/'
-      localStorage.removeItem('redirectAfterLogin')
-      router.replace(redirectTo)
+      // Redirecionar para home após pequeno delay
+      setTimeout(() => {
+        const redirectTo = localStorage.getItem('redirectAfterLogin') || '/'
+        localStorage.removeItem('redirectAfterLogin')
+        console.log('📍 Redirecionando para:', redirectTo)
+        router.replace(redirectTo)
+      }, 100)
       
     } catch (error: any) {
       console.error('🔥 Erro ao processar tokens do hash:', error)
+      console.error('🔍 Hash original:', hash)
+      console.error('🔍 URL completa:', window.location.href)
+      
+      // Salvar erro para debug
+      localStorage.setItem('oauth_error', JSON.stringify({
+        error: error.message,
+        hash: hash,
+        url: window.location.href,
+        timestamp: new Date().toISOString()
+      }))
+      
+      // Limpar URL e redirecionar com erro
       window.history.replaceState(null, '', '/login')
-      router.replace('/login?error=hash_processing_error')
+      router.replace(`/login?error=hash_processing_error&message=${encodeURIComponent(error.message)}`)
     }
   }
 
@@ -240,6 +384,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('apihub_user')
     localStorage.removeItem('authToken')
     localStorage.removeItem('refreshToken')
+    localStorage.removeItem('oauth_error')
     
     // Limpar favoritos específicos do usuário
     if (user?.id) {
