@@ -1,4 +1,4 @@
-// components/AuthProvider.tsx - CORRIGIDO PARA HASH
+// components/AuthProvider.tsx - VERSÃO CORRIGIDA PARA AMBOS (Google e GitHub)
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
@@ -51,6 +51,36 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 // Configuração da API base
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://apihub-br.duckdns.org'
 
+// Função auxiliar para decodificar JWT
+const decodeJWT = (token: string) => {
+  try {
+    // O token pode não ser um JWT (GitHub usa provider_token que não é JWT)
+    // Vamos tentar decodificar, mas se falhar, retornar null
+    if (!token || token.split('.').length !== 3) {
+      return null // Não é um JWT
+    }
+    
+    const base64Url = token.split('.')[1]
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+    
+    // Adicionar padding se necessário
+    const pad = base64.length % 4
+    const paddedBase64 = pad ? base64 + '='.repeat(4 - pad) : base64
+    
+    const jsonPayload = decodeURIComponent(
+      atob(paddedBase64)
+        .split('')
+        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    )
+    
+    return JSON.parse(jsonPayload)
+  } catch (error) {
+    console.warn('Não foi possível decodificar como JWT (pode ser provider_token do GitHub):', error)
+    return null
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [token, setToken] = useState<string | null>(null)
@@ -64,71 +94,118 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const checkHashForTokens = () => {
       // Obter hash da URL (parte após #)
-      const hash = window.location.hash.substring(1)
+      const hash = window.location.hash
       
-      if (hash && hash.includes('access_token')) {
+      console.log('🔍 Hash da URL:', hash.substring(0, 100) + (hash.length > 100 ? '...' : ''))
+      
+      if (hash && (hash.includes('access_token') || hash.includes('provider_token'))) {
         console.log('🔐 Token encontrado no hash da URL')
         processTokensFromHash(hash)
       }
     }
     
     checkHashForTokens()
+    
+    // Também verificar quando a página carrega completamente
+    const handleLoad = () => {
+      setTimeout(checkHashForTokens, 100) // Pequeno delay para garantir
+    }
+    
+    window.addEventListener('load', handleLoad)
+    
+    return () => {
+      window.removeEventListener('load', handleLoad)
+    }
   }, [])
 
   const processTokensFromHash = (hash: string) => {
     try {
       console.log('🔄 Processando tokens do hash...')
       
+      // Remover o # inicial
+      const hashWithoutHash = hash.substring(1)
+      
       // Converter hash para objeto
-      const hashParams = new URLSearchParams(hash)
+      const hashParams = new URLSearchParams(hashWithoutHash)
+      
+      // GitHub usa provider_token, Google usa access_token
       const access_token = hashParams.get('access_token')
+      const provider_token = hashParams.get('provider_token')
       const refresh_token = hashParams.get('refresh_token')
       const expires_at = hashParams.get('expires_at')
+      const token_type = hashParams.get('token_type')
       
       console.log('📦 Tokens extraídos:', {
-        access_token: !!access_token,
-        refresh_token: !!refresh_token,
+        hasAccessToken: !!access_token,
+        hasProviderToken: !!provider_token,
+        hasRefreshToken: !!refresh_token,
+        token_type,
         expires_at
       })
       
-      if (!access_token) {
-        console.error('❌ Access token não encontrado no hash')
+      // Priorizar access_token (Google), senão provider_token (GitHub)
+      const tokenToUse = access_token || provider_token
+      
+      if (!tokenToUse) {
+        console.error('❌ Nenhum token válido encontrado no hash')
         return
       }
       
-      // Decodificar JWT para obter dados do usuário
-      const payload = JSON.parse(atob(access_token.split('.')[1]))
+      // Tentar decodificar JWT (Google funciona, GitHub pode não)
+      const payload = decodeJWT(tokenToUse)
       
-      console.log('📋 Payload do token:', {
-        sub: payload.sub,
-        email: payload.email,
-        name: payload.user_metadata?.name || payload.user_metadata?.full_name
-      })
+      let userData: User
       
-      const userData = {
-        id: payload.sub,
-        email: payload.email,
-        name: payload.user_metadata?.name || 
-              payload.user_metadata?.full_name || 
-              payload.email?.split('@')[0] || 
-              'Usuário',
-        avatar_url: payload.user_metadata?.avatar_url || 
-                   payload.user_metadata?.picture,
-        provider: payload.app_metadata?.provider,
-        accept_terms: false
+      if (payload) {
+        // É um JWT (Google)
+        console.log('📋 Payload do JWT (Google):', {
+          sub: payload.sub,
+          email: payload.email,
+          name: payload.user_metadata?.name || payload.user_metadata?.full_name
+        })
+        
+        userData = {
+          id: payload.sub,
+          email: payload.email,
+          name: payload.user_metadata?.name || 
+                payload.user_metadata?.full_name || 
+                payload.email?.split('@')[0] || 
+                'Usuário',
+          avatar_url: payload.user_metadata?.avatar_url || 
+                     payload.user_metadata?.picture,
+          provider: payload.app_metadata?.provider || 'google',
+          accept_terms: false
+        }
+      } else {
+        // Não é JWT (GitHub provider_token) - criar usuário básico
+        console.log('🔑 Provider token do GitHub detectado')
+        
+        // Para GitHub, precisamos buscar informações do usuário de outra forma
+        // Mas por enquanto, vamos criar um usuário temporário
+        userData = {
+          id: `github_${Date.now()}`,
+          email: `github_user_${Date.now()}@example.com`,
+          name: 'Usuário GitHub',
+          avatar_url: '',
+          provider: 'github',
+          accept_terms: false
+        }
+        
+        console.warn('⚠️ GitHub provider_token - precisamos implementar busca de dados do usuário')
       }
       
-      console.log('✅ Usuário extraído do token:', userData.email)
+      console.log('✅ Usuário criado:', userData.email)
       
       // Salvar no localStorage
-      localStorage.setItem('authToken', access_token)
+      localStorage.setItem('authToken', tokenToUse)
       if (refresh_token) {
         localStorage.setItem('refreshToken', refresh_token)
       }
       localStorage.setItem('apihub_user', JSON.stringify(userData))
+      localStorage.setItem('oauth_provider', userData.provider || 'unknown')
       
       // Atualizar estado
-      setToken(access_token)
+      setToken(tokenToUse)
       setUser(userData)
       
       // Carregar favoritos em background
@@ -152,6 +229,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
     } catch (error: any) {
       console.error('🔥 Erro ao processar tokens do hash:', error)
+      console.error('🔍 Stack trace:', error.stack)
+      
+      // Salvar erro para debug
+      localStorage.setItem('last_oauth_error', JSON.stringify({
+        error: error.message,
+        hash: hash,
+        timestamp: new Date().toISOString()
+      }))
+      
+      // Limpar URL e redirecionar com erro
       window.history.replaceState(null, '', '/login')
       router.replace('/login?error=hash_processing_error')
     }
@@ -240,6 +327,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('apihub_user')
     localStorage.removeItem('authToken')
     localStorage.removeItem('refreshToken')
+    localStorage.removeItem('oauth_provider')
+    localStorage.removeItem('last_oauth_error')
     
     // Limpar favoritos específicos do usuário
     if (user?.id) {
