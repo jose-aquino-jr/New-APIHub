@@ -1,5 +1,3 @@
-// app/page.tsx - SSR
-import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { 
   Zap, 
@@ -11,9 +9,6 @@ import {
   CheckCircle2
 } from 'lucide-react'
 
-// Componente cliente para animações
-import { ClientHero } from '@/components/ClientHero'
-
 // Dados estáticos (podem vir de API em produção)
 const STATS = {
   apis: 40,
@@ -21,10 +16,56 @@ const STATS = {
   users: 1
 }
 
+// Features estáticas
+const FEATURES = [
+  {
+    icon: '📚',
+    title: 'Catálogo Organizado',
+    description: 'APIs categorizadas e fáceis de encontrar',
+    features: ['Busca inteligente', 'Filtros por categoria', 'Avaliações da comunidade']
+  },
+  {
+    icon: '⚡', 
+    title: 'Implementação Rápida',
+    description: 'Documentação clara e exemplos práticos',
+    features: ['Exemplos em múltiplas linguagens', 'Sandbox para testes', 'Deploy rápido']
+  },
+  {
+    icon: '🔧',
+    title: 'Fácil Integração',
+    description: 'Teste e use APIs em minutos',
+    features: ['Documentação interativa', 'Suporte da comunidade', 'Zero configuração']
+  }
+]
+
+// APIs em destaque
+const FEATURED_APIS = [
+  {
+    name: 'OpenWeatherMap',
+    category: 'Clima',
+    description: 'Previsão do tempo para qualquer localização',
+  },
+  {
+    name: 'ExchangeRate-API', 
+    category: 'Financeiro',
+    description: 'Conversão entre 150+ moedas',
+  },
+  {
+    name: 'NewsAPI',
+    category: 'Notícias',
+    description: 'Acesso a milhares de fontes de notícias',
+  },
+  {
+    name: 'JSONPlaceholder',
+    category: 'Desenvolvimento', 
+    description: 'API fake para testes e prototipagem',
+  }
+]
+
 export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Hero Section - Texto Centralizado */}
+      {/* Hero Section - 100% SSR */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden px-4 pt-20 md:pt-24">
         {/* Background */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5" />
@@ -32,7 +73,61 @@ export default function Home() {
         <div className="absolute top-10 right-10 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-float" style={{animationDelay: '2s'}} />
         <div className="absolute bottom-10 left-1/2 w-72 h-72 bg-pink-200 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-float" style={{animationDelay: '4s'}} />
 
-        <ClientHero stats={STATS} />
+        <div className="relative z-10 text-center max-w-4xl mx-auto">
+          {/* Badge - SSR sem animação */}
+          <div className="inline-flex items-center gap-2 bg-white rounded-full px-4 py-2 mb-8 shadow-sm border border-gray-200">
+            <Sparkles className="w-4 h-4 text-blue-600" />
+            <span className="text-sm font-medium text-gray-700">
+              Plataforma <span className="text-blue-600 font-semibold">Gratuita</span> para Devs
+            </span>
+          </div>
+
+          {/* Título Principal */}
+          <h1 className="text-4xl md:text-6xl font-bold mb-6">
+            <span className="text-gray-900">Domine o Poder</span>
+            <br />
+            <span className="text-gradient">das APIs</span>
+          </h1>
+          
+          {/* Subtítulo */}
+          <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-2xl mx-auto leading-relaxed text-center">
+            Descubra e integre APIs gratuitas em uma plataforma 
+            <span className="font-semibold text-gray-800"> feita para desenvolvedores de verdade</span>
+          </p>
+
+          {/* Botões */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
+            <Link 
+              href="/apis" 
+              className="btn-primary group flex items-center gap-3"
+            >
+              <span>Explorar Catálogo</span>
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </Link>
+            
+            <Link href="/documentacao-oficial-apihub.pdf" className="btn-secondary group flex items-center gap-3">
+              <Zap className="w-5 h-5" />
+              <span>Ver Documentação</span>
+            </Link>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-2xl mx-auto">
+            {[
+              { value: STATS.apis, label: 'APIs Disponíveis', icon: Code2, color: 'blue' },
+              { value: STATS.categories, label: 'Categorias', icon: Globe, color: 'purple' },
+              { value: STATS.users, label: 'Desenvolvedores', icon: Users, color: 'green' },
+            ].map((stat) => (
+              <div key={stat.label} className="card text-center">
+                <div className={`w-12 h-12 bg-${stat.color}-50 rounded-2xl flex items-center justify-center mx-auto mb-4`}>
+                  <stat.icon className={`w-6 h-6 text-${stat.color}-600`} />
+                </div>
+                <div className="text-2xl font-bold text-gray-900 mb-1">{stat.value}+</div>
+                <div className="text-gray-600 text-sm">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* Features Section */}
@@ -48,26 +143,7 @@ export default function Home() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
-            {[
-              {
-                icon: '📚',
-                title: 'Catálogo Organizado',
-                description: 'APIs categorizadas e fáceis de encontrar',
-                features: ['Busca inteligente', 'Filtros por categoria', 'Avaliações da comunidade']
-              },
-              {
-                icon: '⚡', 
-                title: 'Implementação Rápida',
-                description: 'Documentação clara e exemplos práticos',
-                features: ['Exemplos em múltiplas linguagens', 'Sandbox para testes', 'Deploy rápido']
-              },
-              {
-                icon: '🔧',
-                title: 'Fácil Integração',
-                description: 'Teste e use APIs em minutos',
-                features: ['Documentação interativa', 'Suporte da comunidade', 'Zero configuração']
-              }
-            ].map((feature, index) => (
+            {FEATURES.map((feature) => (
               <div
                 key={feature.title}
                 className="card hover:scale-105 cursor-pointer group"
@@ -78,8 +154,8 @@ export default function Home() {
                 </h3>
                 <p className="text-gray-600 text-sm mb-4">{feature.description}</p>
                 <ul className="space-y-2">
-                  {feature.features.map((item, i) => (
-                    <li key={i} className="flex items-center gap-2 text-sm text-gray-500">
+                  {feature.features.map((item) => (
+                    <li key={item} className="flex items-center gap-2 text-sm text-gray-500">
                       <CheckCircle2 className="w-4 h-4 text-green-500" />
                       {item}
                     </li>
@@ -104,28 +180,7 @@ export default function Home() {
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">
-            {[
-              {
-                name: 'OpenWeatherMap',
-                category: 'Clima',
-                description: 'Previsão do tempo para qualquer localização',
-              },
-              {
-                name: 'ExchangeRate-API', 
-                category: 'Financeiro',
-                description: 'Conversão entre 150+ moedas',
-              },
-              {
-                name: 'NewsAPI',
-                category: 'Notícias',
-                description: 'Acesso a milhares de fontes de notícias',
-              },
-              {
-                name: 'JSONPlaceholder',
-                category: 'Desenvolvimento', 
-                description: 'API fake para testes e prototipagem',
-              }
-            ].map((api, index) => (
+            {FEATURED_APIS.map((api) => (
               <div
                 key={api.name}
                 className="card hover:scale-105 cursor-pointer group"
