@@ -1,9 +1,6 @@
-
-'use client'
-
+// app/page.tsx - SSR
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
 import { 
   Zap, 
   Sparkles, 
@@ -14,16 +11,17 @@ import {
   CheckCircle2
 } from 'lucide-react'
 
+// Componente cliente para animações
+import { ClientHero } from '@/components/ClientHero'
+
+// Dados estáticos (podem vir de API em produção)
+const STATS = {
+  apis: 40,
+  categories: 15,
+  users: 1
+}
+
 export default function Home() {
-  const [stats, setStats] = useState({ apis: 0, categories: 0, users: 0 })
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setStats({ apis: 40, categories: 15, users: 1 })
-    }, 1000)
-    return () => clearTimeout(timer)
-  }, [])
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Hero Section - Texto Centralizado */}
@@ -34,101 +32,20 @@ export default function Home() {
         <div className="absolute top-10 right-10 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-float" style={{animationDelay: '2s'}} />
         <div className="absolute bottom-10 left-1/2 w-72 h-72 bg-pink-200 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-float" style={{animationDelay: '4s'}} />
 
-        <div className="relative z-10 text-center max-w-4xl mx-auto">
-          {/* Badge */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 bg-white rounded-full px-4 py-2 mb-8 shadow-sm border border-gray-200"
-          >
-            <Sparkles className="w-4 h-4 text-blue-600" />
-            <span className="text-sm font-medium text-gray-700">
-              Plataforma <span className="text-blue-600 font-semibold">Gratuita</span> para Devs
-            </span>
-          </motion.div>
-
-          {/* Título Principal */}
-          <motion.h1 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-6xl font-bold mb-6"
-          >
-            <span className="text-gray-900">Domine o Poder</span>
-            <br />
-            <span className="text-gradient">das APIs</span>
-          </motion.h1>
-          
-          {/* Subtítulo - CENTRALIZADO */}
-          <motion.p 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-lg md:text-xl text-gray-600 mb-8 max-w-2xl mx-auto leading-relaxed text-center"
-          >
-            Descubra e integre APIs gratuitas em uma plataforma 
-            <span className="font-semibold text-gray-800"> feita para desenvolvedores de verdade</span>
-          </motion.p>
-
-          {/* Botões */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16"
-          >
-            <Link 
-              href="/apis" 
-              className="btn-primary group flex items-center gap-3"
-            >
-              <span>Explorar Catálogo</span>
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </Link>
-            
-            <Link href="/documentacao-oficial-apihub.pdf"className="btn-secondary group flex items-center gap-3">
-              <Zap className="w-5 h-5" />
-              <span>Ver Documentação</span>
-            </Link>
-          </motion.div>
-
-          {/* Stats */}
-          <motion.div 
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-2xl mx-auto"
-          >
-            {[
-              { value: stats.apis, label: 'APIs Disponíveis', icon: Code2, color: 'blue' },
-              { value: stats.categories, label: 'Categorias', icon: Globe, color: 'purple' },
-              { value: stats.users, label: 'Desenvolvedores', icon: Users, color: 'green' },
-            ].map((stat, index) => (
-              <div key={stat.label} className="card text-center">
-                <div className={`w-12 h-12 bg-${stat.color}-50 rounded-2xl flex items-center justify-center mx-auto mb-4`}>
-                  <stat.icon className={`w-6 h-6 text-${stat.color}-600`} />
-                </div>
-                <div className="text-2xl font-bold text-gray-900 mb-1">{stat.value}+</div>
-                <div className="text-gray-600 text-sm">{stat.label}</div>
-              </div>
-            ))}
-          </motion.div>
-        </div>
+        <ClientHero stats={STATS} />
       </section>
 
       {/* Features Section */}
       <section className="py-16 px-4 bg-white mt-16">
         <div className="max-w-6xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            className="text-center mb-12"
-          >
+          <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               Por que escolher o APIHub?
             </h2>
             <p className="text-gray-600 max-w-xl mx-auto">
               Uma plataforma completa para suas integrações de API
             </p>
-          </motion.div>
+          </div>
 
           <div className="grid md:grid-cols-3 gap-6">
             {[
@@ -151,11 +68,8 @@ export default function Home() {
                 features: ['Documentação interativa', 'Suporte da comunidade', 'Zero configuração']
               }
             ].map((feature, index) => (
-              <motion.div
+              <div
                 key={feature.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
                 className="card hover:scale-105 cursor-pointer group"
               >
                 <div className="text-3xl mb-4">{feature.icon}</div>
@@ -171,7 +85,7 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
@@ -180,18 +94,14 @@ export default function Home() {
       {/* APIs em Destaque */}
       <section className="py-16 px-4 bg-gray-50 mt-16">
         <div className="max-w-6xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            className="text-center mb-12"
-          >
+          <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               APIs Populares
             </h2>
             <p className="text-gray-600">
               Algumas das APIs mais usadas da plataforma
             </p>
-          </motion.div>
+          </div>
 
           <div className="grid md:grid-cols-2 gap-6">
             {[
@@ -216,11 +126,8 @@ export default function Home() {
                 description: 'API fake para testes e prototipagem',
               }
             ].map((api, index) => (
-              <motion.div
+              <div
                 key={api.name}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
                 className="card hover:scale-105 cursor-pointer group"
               >
                 <div className="flex justify-between items-start mb-3">
@@ -233,16 +140,11 @@ export default function Home() {
                   {api.name}
                 </h3>
                 <p className="text-gray-600 text-sm">{api.description}</p>
-              </motion.div>
+              </div>
             ))}
           </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="text-center mt-8"
-          >
+          <div className="text-center mt-8">
             <Link 
               href="/apis" 
               className="btn-secondary inline-flex items-center gap-2"
@@ -250,17 +152,14 @@ export default function Home() {
               <span>Ver Todas as APIs</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
-          </motion.div>
+          </div>
         </div>
       </section>
 
       {/* CTA Final */}
       <section className="py-16 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white mt-16">
         <div className="max-w-2xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-          >
+          <div>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               Pronto para começar?
             </h2>
@@ -277,10 +176,9 @@ export default function Home() {
             <p className="text-blue-200 text-sm mt-4">
               Não precisa de cartão de crédito • Totalmente gratuito
             </p>
-          </motion.div>
+          </div>
         </div>
       </section>
     </div>
   )
 }
-
