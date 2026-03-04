@@ -8,18 +8,21 @@ import { RankingSkeleton } from '@/components/RankingSkeleton'
 export const dynamic = 'force-dynamic'
 export const revalidate = 3600 // Revalidar a cada hora
 
+// app/ranking/page.tsx
 async function getRankingData() {
   try {
-    const response = await fetch('https://apihub-br.duckdns.org/ranking', {
-      next: { revalidate: 3600 } // Cache por 1 hora
+    // CORREÇÃO: Adicionado /apis/ antes de /ranking conforme a doc 
+    const response = await fetch('https://apihub-br.duckdns.org/apis/ranking?limit=50', {
+      next: { revalidate: 3600 } 
     })
     
     if (!response.ok) {
       throw new Error(`Erro HTTP ${response.status}`)
     }
     
-    const data = await response.json()
+    const data = await response.json();
     
+    // A doc indica que a resposta vem dentro de um objeto "data" [cite: 208]
     if (data.success && data.data) {
       return {
         ranking: data.data,

@@ -42,17 +42,16 @@ const CATEGORY_MAP: Record<string, { color: string; icon: LucideIcon }> = {
 export default function EdicaoAPI() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const apiId = params?.id;
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
-  // States do Formulário
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [endpoint, setEndpoint] = useState('');
-  const [method, setMethod] = useState<'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'>('GET');
+  const [method, setMethod] = useState('GET');
   const [parameters, setParameters] = useState('');
   const [category, setCategory] = useState('');
   const [isHttps, setIsHttps] = useState(true);
@@ -60,26 +59,24 @@ export default function EdicaoAPI() {
 
   useEffect(() => {
     async function loadApiData() {
-      if ((apiId === '1' || apiId === '2') && process.env.NODE_ENV === 'development') {
-        setTimeout(() => {
-          setName(apiId === '1' ? 'API de Exemplo (Simulada)' : 'Sistema de IA (Simulado)');
-          setMethod('GET');
-          setCategory(apiId === '1' ? 'Desenvolvimento' : 'IA');
-          setLoading(false);
-        }, 500);
-        return;
-      }
+      // Sincronização de Token para busca
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
 
       try {
-        const res = await fetch(`https://apihub-br.duckdns.org/api-detalhes/${apiId}`);
+        // Busca os dados atuais da API
+        const res = await fetch(`https://apihub-br.duckdns.org/api-detalhes/${apiId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
         const data = await res.json();
         const api = data.success ? data.data : data;
         
-        if (api && api.name) {
-          setName(api.name);
+        if (api && (api.name || api.title)) {
+          setName(api.name || api.title);
           setDescription(api.description || '');
           setEndpoint(api.base_url || '');
-          setMethod(api.method || 'GET');
+          // Garante que o método venha em maiúsculo e pegue apenas o primeiro se for string separada por vírgula
+          const firstMethod = api.method?.split(',')[0] || 'GET';
+          setMethod(firstMethod);
           setCategory(api.tags || '');
           setIsHttps(!!api.https);
           setIsCors(!!api.cors);
@@ -89,7 +86,7 @@ export default function EdicaoAPI() {
           router.push('/minhas_apis');
         }
       } catch (error) {
-        toast.error("Erro ao carregar dados.");
+        toast.error("Erro ao carregar dados do catálogo.");
       } finally {
         setLoading(false);
       }
@@ -99,15 +96,12 @@ export default function EdicaoAPI() {
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (apiId === '1' || apiId === '2') {
-      toast.info("Simulação: Dados não persistidos.");
-      return;
-    }
-
     setSaving(true);
-    const token = localStorage.getItem('authToken');
+    
+    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
 
     try {
+      // Conforme Doc Seção 3.2: PUT /api-update/{id}
       const res = await fetch(`https://apihub-br.duckdns.org/api-update/${apiId}`, {
         method: 'PUT',
         headers: {
@@ -118,23 +112,26 @@ export default function EdicaoAPI() {
           name,
           description,
           base_url: endpoint,
-          method,
+          method, // Se o backend exigir string separada por vírgula: method: method
           tags: category,
           https: isHttps,
           cors: isCors,
           parameters,
-          updated_at: new Date().toISOString()
         })
       });
 
+      const result = await res.json();
+
       if (res.ok) {
-        toast.success('Alterações salvas!');
+        toast.success('Alterações sincronizadas!', {
+            description: "Os dados foram atualizados no catálogo global."
+        });
         router.push('/minhas_apis');
       } else {
-        toast.error('Falha ao atualizar API.');
+        toast.error(result.message || 'Falha ao atualizar API.');
       }
     } catch (err) {
-      toast.error('Erro de conexão.');
+      toast.error('Erro de conexão com o servidor.');
     } finally {
       setSaving(false);
     }
@@ -144,7 +141,6 @@ export default function EdicaoAPI() {
   const SelectedIcon = categoryData.icon;
   const selectedGradient = categoryData.color;
 
-  // Função para definir a cor do texto baseada no Método HTTP
   const getMethodColor = (m: string) => {
     switch(m) {
       case 'GET': return 'text-green-600';
@@ -157,147 +153,147 @@ export default function EdicaoAPI() {
   };
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-white">
-      <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+    <div className="min-h-screen flex flex-col items-center justify-center bg-white">
+      <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
+      <p className="text-gray-400 font-bold animate-pulse">Recuperando registros...</p>
     </div>
   );
 
   return (
-    <div className="min-h-screen pt-28 pb-12 bg-gradient-to-br from-gray-50 via-white to-blue-50/30 px-4 text-black">
+    <div className="min-h-screen pt-32 pb-20 bg-gradient-to-br from-gray-50 via-white to-blue-50/30 px-4 text-black font-sans">
       <Toaster richColors position="top-right" />
       
       <div className="max-w-3xl mx-auto">
         <button 
           onClick={() => router.push('/minhas_apis')} 
-          className="flex items-center gap-2 text-gray-500 hover:text-blue-600 font-bold mb-8 transition-colors"
+          className="group flex items-center gap-2 text-gray-400 hover:text-blue-600 font-black mb-10 transition-all uppercase text-xs tracking-widest"
         >
-          <ArrowLeft size={18} /> Voltar para Minhas APIs
+          <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> 
+          Voltar ao Gerenciador
         </button>
 
-        <div className="text-center mb-10">
+        <div className="text-center mb-12">
           <AnimatePresence mode="wait">
             <motion.div 
               key={category} 
-              initial={{ opacity: 0, scale: 0.9 }} 
-              animate={{ opacity: 1, scale: 1 }} 
-              className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full text-sm font-bold mb-4 shadow-sm border border-gray-100"
+              initial={{ opacity: 0, y: 10 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              className="inline-flex items-center gap-2 bg-white px-5 py-2 rounded-full text-xs font-black mb-6 shadow-sm border border-gray-100 uppercase tracking-tighter"
             >
               <SelectedIcon className="w-4 h-4 text-blue-600" />
               {category || 'Sem Categoria'}
             </motion.div>
           </AnimatePresence>
-          <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">Editar API</h1>
+          <h1 className="text-5xl font-black text-gray-900 tracking-tighter">Editar <span className="text-blue-600">Endpoint</span></h1>
+          <p className="text-gray-500 font-medium mt-3 italic">ID: {apiId}</p>
         </div>
 
-        <form onSubmit={handleUpdate} className="space-y-6 bg-white p-6 md:p-10 rounded-[2.5rem] border border-gray-200 shadow-xl shadow-blue-900/5">
+        <form onSubmit={handleUpdate} className="space-y-8 bg-white p-8 md:p-12 rounded-[3rem] border border-gray-100 shadow-2xl shadow-blue-900/5">
           
-          {/* Seção 1: Nome e Método */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-2 space-y-2">
-              <label className="text-sm font-bold text-gray-700 ml-1">Nome da API</label>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="md:col-span-2 space-y-3">
+              <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Título da API</label>
               <input 
                 type="text" 
                 value={name} 
                 onChange={(e) => setName(e.target.value)} 
-                className="w-full p-4 rounded-2xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50/50" 
+                className="w-full p-5 rounded-2xl border border-gray-100 focus:ring-4 focus:ring-blue-500/10 outline-none bg-gray-50/50 font-bold text-lg transition-all" 
                 required 
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-gray-700 ml-1">Método HTTP</label>
+            <div className="space-y-3">
+              <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Método</label>
               <div className="relative">
                 <select 
                   value={method} 
-                  onChange={(e) => setMethod(e.target.value as any)} 
-                  className={`w-full p-4 rounded-2xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none appearance-none bg-gray-50/50 cursor-pointer font-black ${getMethodColor(method)}`} 
+                  onChange={(e) => setMethod(e.target.value)} 
+                  className={`w-full p-5 rounded-2xl border border-gray-100 focus:ring-4 focus:ring-blue-500/10 outline-none appearance-none bg-gray-50/50 cursor-pointer font-black text-center ${getMethodColor(method)}`} 
                   required
                 >
-                  <option value="GET">GET</option>
-                  <option value="POST">POST</option>
-                  <option value="PUT">PUT</option>
-                  <option value="PATCH">PATCH</option>
-                  <option value="DELETE">DELETE</option>
+                  {['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].map(m => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
                 </select>
-                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300 pointer-events-none" />
               </div>
             </div>
           </div>
 
-          {/* Seção 2: Categoria e Parâmetros */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-gray-700 ml-1">Categoria Principal</label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-3">
+              <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Categoria</label>
               <div className="relative">
                 <select 
                   value={category} 
                   onChange={(e) => setCategory(e.target.value)} 
-                  className="w-full p-4 rounded-2xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none appearance-none bg-gray-50/50 cursor-pointer" 
+                  className="w-full p-5 rounded-2xl border border-gray-100 focus:ring-4 focus:ring-blue-500/10 outline-none appearance-none bg-gray-50/50 cursor-pointer font-bold" 
                   required
                 >
                   <option value="" disabled>Selecione...</option>
                   {Object.keys(CATEGORY_MAP).sort().map(cat => <option key={cat} value={cat}>{cat}</option>)}
                 </select>
-                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300 pointer-events-none" />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-gray-700 ml-1">Parâmetros (Query)</label>
+            <div className="space-y-3">
+              <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Parâmetros</label>
               <input 
                 type="text" 
                 value={parameters} 
                 onChange={(e) => setParameters(e.target.value)} 
-                placeholder="ex: id, key, limit" 
-                className="w-full p-4 rounded-2xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50/50" 
+                placeholder="ex: api_key, city" 
+                className="w-full p-5 rounded-2xl border border-gray-100 focus:ring-4 focus:ring-blue-500/10 outline-none bg-gray-50/50 font-medium" 
               />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-bold text-gray-700 ml-1">URL Base do Serviço</label>
-            <input 
-              type="text" 
-              value={endpoint} 
-              onChange={(e) => setEndpoint(e.target.value)} 
-              className="w-full p-4 rounded-2xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50/50" 
-              placeholder="https://sua-api.com/v1" 
-              required 
-            />
+          <div className="space-y-3">
+            <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">URL Base</label>
+            <div className="relative">
+                <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-300 font-bold">URL</div>
+                <input 
+                    type="text" 
+                    value={endpoint} 
+                    onChange={(e) => setEndpoint(e.target.value)} 
+                    className="w-full pl-16 p-5 rounded-2xl border border-gray-100 focus:ring-4 focus:ring-blue-500/10 outline-none bg-gray-50/50 font-bold text-blue-600" 
+                    required 
+                />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-bold text-gray-700 ml-1">Descrição</label>
+          <div className="space-y-3">
+            <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Documentação / Descrição</label>
             <textarea 
               value={description} 
               onChange={(e) => setDescription(e.target.value)} 
-              className="w-full p-4 h-28 rounded-2xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50/50 resize-none" 
+              className="w-full p-6 h-40 rounded-3xl border border-gray-100 focus:ring-4 focus:ring-blue-500/10 outline-none bg-gray-50/50 resize-none font-medium leading-relaxed" 
               required 
             />
           </div>
 
-          {/* Segurança */}
-          <div className="flex flex-wrap gap-4 py-2">
-            <button type="button" onClick={() => setIsHttps(!isHttps)} className={`flex items-center gap-2 px-5 py-2.5 rounded-full border-2 transition-all ${isHttps ? 'bg-green-50 border-green-200 text-green-700' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
-              <Shield className="w-4 h-4" />
-              <span className="text-[10px] font-black uppercase">HTTPS {isHttps ? 'On' : 'Off'}</span>
+          <div className="flex flex-wrap gap-4 py-4 border-t border-gray-50">
+            <button type="button" onClick={() => setIsHttps(!isHttps)} className={`flex items-center gap-3 px-6 py-3 rounded-2xl border-2 transition-all font-black text-[10px] tracking-[0.2em] ${isHttps ? 'bg-green-50 border-green-200 text-green-700' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
+              <Shield className={`w-4 h-4 ${isHttps ? 'fill-green-600' : ''}`} />
+              HTTPS {isHttps ? 'ATIVO' : 'INATIVO'}
             </button>
 
-            <button type="button" onClick={() => setIsCors(!isCors)} className={`flex items-center gap-2 px-5 py-2.5 rounded-full border-2 transition-all ${isCors ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
-              <Globe className="w-4 h-4" />
-              <span className="text-[10px] font-black uppercase">CORS {isCors ? 'On' : 'Off'}</span>
+            <button type="button" onClick={() => setIsCors(!isCors)} className={`flex items-center gap-3 px-6 py-3 rounded-2xl border-2 transition-all font-black text-[10px] tracking-[0.2em] ${isCors ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
+              <Globe className={`w-4 h-4 ${isCors ? 'animate-pulse' : ''}`} />
+              CORS {isCors ? 'SUPORTADO' : 'LIMITADO'}
             </button>
           </div>
 
           <motion.button 
-            whileHover={{ scale: 1.01 }} 
+            whileHover={{ scale: 1.02, y: -2 }} 
             whileTap={{ scale: 0.98 }} 
             type="submit" 
             disabled={saving} 
-            className={`w-full py-5 rounded-[1.5rem] text-white font-bold text-lg shadow-xl flex items-center justify-center gap-3 bg-gradient-to-r ${selectedGradient} ${saving ? 'opacity-50' : ''}`}
+            className={`w-full py-6 rounded-3xl text-white font-black text-xl shadow-2xl shadow-blue-200 flex items-center justify-center gap-4 bg-gradient-to-r ${selectedGradient} ${saving ? 'opacity-50 grayscale' : ''} transition-all uppercase tracking-widest`}
           >
-            {saving ? <Loader2 className="animate-spin" size={24} /> : <Save size={24} />}
-            {saving ? 'SALVANDO...' : 'ATUALIZAR API'}
+            {saving ? <Loader2 className="animate-spin" size={28} /> : <Save size={28} />}
+            {saving ? 'Sincronizando...' : 'Salvar Alterações'}
           </motion.button>
         </form>
       </div>

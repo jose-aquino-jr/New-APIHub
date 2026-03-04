@@ -57,13 +57,10 @@ const METHOD_STYLES: Record<string, string> = {
   DELETE: 'border-red-500 text-red-600 bg-red-50',
 };
 
-// --- COMPONENTE PRINCIPAL ---
-
 export default function CriacaoAPI() {
   const { user } = useAuth();
   const router = useRouter();
 
-  // Estados do Formulário
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [endpoint, setEndpoint] = useState('');
@@ -74,7 +71,6 @@ export default function CriacaoAPI() {
   const [isCors, setIsCors] = useState(true);
   const [enviando, setEnviando] = useState(false);
 
-  // Lógica de Multi-seleção de Métodos
   const toggleMethod = (method: string) => {
     setSelectedMethods(prev => 
       prev.includes(method) 
@@ -98,13 +94,14 @@ export default function CriacaoAPI() {
     setEnviando(true);
 
     try {
-      const token = localStorage.getItem('authToken');
+      // Sincronização de Token unificada
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
       
       const payload = {
         name,
         description,
         base_url: endpoint,
-        method: selectedMethods.join(','), // Ex: "GET,POST"
+        method: selectedMethods.join(','), 
         tags: category,
         https: isHttps,
         cors: isCors,
@@ -112,7 +109,7 @@ export default function CriacaoAPI() {
         parameters: parameters,
       };
 
-      const response = await fetch('https://apihub-br.duckdns.org/apis/', {
+      const response = await fetch('https://apihub-br.duckdns.org/apis', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -121,14 +118,15 @@ export default function CriacaoAPI() {
         body: JSON.stringify(payload)
       });
 
+      const data = await response.json();
+
       if (response.ok) {
         toast.success('API Publicada!', { 
           description: `${name} agora faz parte do catálogo oficial.` 
         });
         router.push('/academy/dashboard');
       } else {
-        const data = await response.json();
-        throw new Error(data.detail || 'Erro ao processar requisição');
+        throw new Error(data.detail || data.message || 'Erro ao processar requisição');
       }
     } catch (error: any) {
       toast.error('Erro na publicação', { description: error.message });
@@ -163,7 +161,7 @@ export default function CriacaoAPI() {
 
         <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 md:p-10 rounded-[2.5rem] border border-gray-200 shadow-xl shadow-blue-900/5">
           
-          {/* SELETOR DE MÉTODOS HTTP (MULTI-SELECT) */}
+          {/* SELETOR DE MÉTODOS HTTP */}
           <div className="space-y-3">
             <label className="text-sm font-bold text-gray-700 ml-1 flex items-center gap-2">
               <Code2 size={18} className="text-blue-600" /> Métodos Disponíveis
@@ -276,6 +274,14 @@ export default function CriacaoAPI() {
               <Globe className={`w-4 h-4 ${isCors ? 'text-blue-500' : ''}`} />
               <span className="text-xs font-black uppercase">CORS</span>
             </button>
+          </div>
+
+          {/* LIVE PREVIEW - NOVO */}
+          <div className="p-4 bg-gray-900 rounded-2xl border border-gray-800 space-y-2">
+            <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">URL Preview</p>
+            <code className="text-blue-400 text-xs break-all">
+              {endpoint || 'https://api.exemplo.com'}{parameters ? `?${parameters.replace(/\s/g, '')}=value` : ''}
+            </code>
           </div>
 
           <motion.button 

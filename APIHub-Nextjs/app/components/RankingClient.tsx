@@ -7,14 +7,14 @@ import { Trophy, Medal, Star, ArrowUpRight, Loader2, Users, BarChart3 } from 'lu
 import { generateSlug } from '@/lib/utils'
 
 type APIItem = {
-  id: string
-  name: string
-  tag: string
-  rating: number
-  rating_count: number 
-  tags?: string
-  description?: string
-  has_minimum_ratings?: boolean
+  id: string;
+  name: string;
+  tag: string;
+  rating: number;
+  rating_count: number;
+  tags?: string;
+  description?: string | null;
+  has_minimum_ratings?: boolean;
 }
 
 interface RankingClientProps {
@@ -26,7 +26,14 @@ interface RankingClientProps {
 }
 
 export function RankingClient({ initialRanking, initialMeta }: RankingClientProps) {
-  const [rankingData, setRankingData] = useState<APIItem[]>(initialRanking)
+  // Inicializamos tratando possíveis nulos nos dados iniciais do SSR
+  const [rankingData, setRankingData] = useState<APIItem[]>(() => 
+    initialRanking.map(api => ({
+      ...api,
+      rating: Number(api.rating) || 0,
+      rating_count: Number(api.rating_count) || 0
+    }))
+  )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [stats, setStats] = useState(initialMeta)
@@ -36,7 +43,8 @@ export function RankingClient({ initialRanking, initialMeta }: RankingClientProp
       setLoading(true)
       setError(null)
       
-      const response = await fetch('https://apihub-br.duckdns.org/ranking?limit=50')
+      // CORREÇÃO URL: Conforme página 14 da documentação (/apis/ranking)
+      const response = await fetch('https://apihub-br.duckdns.org/apis/ranking?limit=50')
       
       if (!response.ok) {
         throw new Error(`Erro HTTP ${response.status}`)
@@ -49,13 +57,15 @@ export function RankingClient({ initialRanking, initialMeta }: RankingClientProp
           id: api.id,
           name: api.name,
           tag: getFirstTag(api.tags) || 'API',
-          rating: api.rating || 0,
-          rating_count: api.rating_count || 0,
+          // BLINDAGEM: Garante que rating nunca seja null antes do .toFixed
+          rating: Number(api.rating) || 0,
+          rating_count: Number(api.rating_count) || 0,
           tags: api.tags,
           description: api.description,
-          has_minimum_ratings: api.has_minimum_ratings
+          has_minimum_ratings: (Number(api.rating_count) || 0) >= 5
         }))
         
+        // Ordenação robusta
         const sortedData = transformedData.sort((a: APIItem, b: APIItem) => {
           if (b.rating !== a.rating) {
             return b.rating - a.rating;
@@ -67,8 +77,8 @@ export function RankingClient({ initialRanking, initialMeta }: RankingClientProp
         
         if (data.meta) {
           setStats({
-            total: data.meta.total,
-            with_ratings: data.meta.with_ratings
+            total: data.meta.total || transformedData.length,
+            with_ratings: data.meta.with_ratings || transformedData.length
           })
         }
       }
@@ -102,10 +112,9 @@ export function RankingClient({ initialRanking, initialMeta }: RankingClientProp
             </div>
             <button
               onClick={retryFetch}
-              disabled={loading}
-              className="px-3 py-1 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 disabled:opacity-50"
+              className="px-3 py-1 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700"
             >
-              {loading ? 'Atualizando...' : 'Tentar novamente'}
+              Tentar novamente
             </button>
           </div>
         </motion.div>
@@ -116,7 +125,7 @@ export function RankingClient({ initialRanking, initialMeta }: RankingClientProp
         <button
           onClick={retryFetch}
           disabled={loading}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2 disabled:opacity-50"
         >
           <Loader2 className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           {loading ? 'Atualizando...' : 'Atualizar Ranking'}
@@ -141,36 +150,29 @@ export function RankingClient({ initialRanking, initialMeta }: RankingClientProp
           <div className="text-center p-3 bg-white rounded-xl">
             <p className="text-2xl font-bold text-gray-900">{stats.with_ratings}</p>
             <p className="text-sm text-gray-600">APIs no ranking</p>
-            <p className="text-xs text-gray-500 mt-1">(mín. 5 avaliações)</p>
           </div>
           <div className="text-center p-3 bg-white rounded-xl">
             <p className="text-2xl font-bold text-gray-900">
-              {rankingData.length > 0 ? rankingData[0].rating.toFixed(1) : '0.0'}
+              {/* FIX: Adicionado Number() e fallback 0 para evitar erro de .toFixed */}
+              {rankingData.length > 0 ? (Number(rankingData[0].rating) || 0).toFixed(1) : '0.0'}
             </p>
             <p className="text-sm text-gray-600">Maior nota</p>
           </div>
           <div className="text-center p-3 bg-white rounded-xl">
             <p className="text-2xl font-bold text-gray-900">
-              {rankingData.reduce((sum, api) => sum + api.rating_count, 0)}
+              {rankingData.reduce((sum, api) => sum + (Number(api.rating_count) || 0), 0)}
             </p>
-            <p className="text-sm text-gray-600">Total de avaliações</p>
+            <p className="text-sm text-gray-600">Total avaliações</p>
           </div>
         </div>
       </motion.div>
 
-      {/* Lista */}
+      {/* Lista de APIs */}
       <div className="max-w-4xl mx-auto space-y-4">
         {rankingData.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-2xl border">
             <Trophy className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">Nenhuma API no ranking ainda</p>
-            <p className="text-gray-400 text-sm mt-1">Seja o primeiro a avaliar uma API!</p>
-            <button
-              onClick={retryFetch}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Tentar novamente
-            </button>
+            <p className="text-gray-500">Nenhum dado disponível</p>
           </div>
         ) : (
           rankingData.map((api, index) => (
@@ -179,92 +181,41 @@ export function RankingClient({ initialRanking, initialMeta }: RankingClientProp
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.05 }}
-              className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm border flex items-center gap-4 hover:shadow-md transition-shadow"
+              className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm border flex items-center gap-4 hover:shadow-md transition-all"
             >
-              {/* Posição */}
+              {/* Posição com Medalhas */}
               <div className="w-12 h-12 flex items-center justify-center font-bold text-xl">
-                {index === 0 ? (
-                  <div className="text-center">
-                    <Medal className="text-yellow-500 w-8 h-8 mx-auto" />
-                    <span className="text-xs text-yellow-600 block mt-1">1º</span>
-                  </div>
-                ) : index === 1 ? (
-                  <div className="text-center">
-                    <Medal className="text-gray-400 w-8 h-8 mx-auto" />
-                    <span className="text-xs text-gray-600 block mt-1">2º</span>
-                  </div>
-                ) : index === 2 ? (
-                  <div className="text-center">
-                    <Medal className="text-amber-600 w-8 h-8 mx-auto" />
-                    <span className="text-xs text-amber-700 block mt-1">3º</span>
-                  </div>
-                ) : (
-                  <div className="text-center">
-                    <span className="text-2xl text-gray-400">#{index + 1}</span>
-                  </div>
-                )}
+                {index === 0 ? <Medal className="text-yellow-500 w-8 h-8" /> : 
+                 index === 1 ? <Medal className="text-gray-400 w-8 h-8" /> :
+                 index === 2 ? <Medal className="text-amber-600 w-8 h-8" /> :
+                 <span className="text-gray-400">#{index + 1}</span>}
               </div>
 
-              {/* Info */}
+              {/* Conteúdo */}
               <div className="flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="font-bold text-gray-900 text-lg">
-                    {api.name}
-                  </h2>
-
-                  <span className="text-xs px-2 py-0.5 bg-gray-100 rounded-full">
-                    {api.tag}
-                  </span>
-
-                  {/* Indicador de empate */}
-                  {index > 0 && api.rating === rankingData[index - 1].rating && (
-                    <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
-                      Empate em nota
-                    </span>
-                  )}
+                  <h2 className="font-bold text-gray-900 text-lg">{api.name}</h2>
+                  <span className="text-xs px-2 py-0.5 bg-gray-100 rounded-full">{api.tag}</span>
                 </div>
 
-                {api.description && (
-                  <p className="text-gray-600 text-sm mt-1 line-clamp-1">
-                    {api.description}
-                  </p>
-                )}
-
                 <div className="flex items-center gap-4 mt-3">
-                  <div className="flex items-center">
-                    <div className="flex items-center text-yellow-500">
-                      <Star className="w-5 h-5 fill-current" />
-                      <span className="ml-1 text-lg font-bold text-gray-900">
-                        {api.rating.toFixed(1)}
-                      </span>
-                    </div>
-                    <span className="text-sm text-gray-500 ml-2">média</span>
-                  </div>
-
-                  <div className="flex items-center">
-                    <Users className="w-4 h-4 text-gray-400" />
-                    <span className="ml-1 text-sm text-gray-700 font-medium">
-                      {api.rating_count}
-                    </span>
-                    <span className="text-xs text-gray-500 ml-1">
-                      {api.rating_count === 1 ? 'avaliação' : 'avaliações'}
+                  <div className="flex items-center text-yellow-500">
+                    <Star className="w-5 h-5 fill-current" />
+                    <span className="ml-1 text-lg font-bold text-gray-900">
+                      {(Number(api.rating) || 0).toFixed(1)}
                     </span>
                   </div>
-
-                  {/* Badge para APIs com muitas avaliações */}
-                  {api.rating_count >= 50 && (
-                    <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full">
-                      ⭐ Popular
-                    </span>
-                  )}
+                  <div className="flex items-center text-gray-500 text-sm">
+                    <Users className="w-4 h-4 mr-1" />
+                    {api.rating_count} avaliações
+                  </div>
                 </div>
               </div>
 
-              {/* Ação */}
+              {/* Link */}
               <Link
                 href={`/apis/${generateSlug(api.name)}`}
-                className="p-3 hover:bg-orange-50 text-orange-500 rounded-full transition-colors"
-                aria-label={`Ver mais sobre ${api.name}`}
+                className="p-3 hover:bg-blue-50 text-blue-600 rounded-full transition-colors"
               >
                 <ArrowUpRight className="w-6 h-6" />
               </Link>
@@ -272,70 +223,6 @@ export function RankingClient({ initialRanking, initialMeta }: RankingClientProp
           ))
         )}
       </div>
-
-      {/* Informações sobre o ranking */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="max-w-4xl mx-auto mt-8 p-6 bg-gray-50 rounded-2xl border"
-      >
-        <h3 className="font-bold text-gray-900 text-lg mb-4 flex items-center gap-2">
-          <Trophy className="w-5 h-5" />
-          ℹ️ Como funciona o ranking?
-        </h3>
-        <div className="grid md:grid-cols-2 gap-6">
-          <div>
-            <h4 className="font-semibold text-gray-800 mb-2">📈 Critérios de ordenação:</h4>
-            <ul className="text-gray-600 space-y-2 text-sm">
-              <li className="flex items-start gap-2">
-                <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5"></div>
-                <span><strong>1º Critério:</strong> Média de avaliações (rating)</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5"></div>
-                <span><strong>2º Critério:</strong> Número de avaliações (desempate)</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5"></div>
-                <span>APIs com mesma nota: quem tem mais avaliações fica na frente</span>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-semibold text-gray-800 mb-2">✅ Requisitos para entrar no ranking:</h4>
-            <ul className="text-gray-600 space-y-2 text-sm">
-              <li className="flex items-start gap-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full mt-1.5"></div>
-                <span>Mínimo de <strong>5 avaliações</strong> para ser considerado</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full mt-1.5"></div>
-                <span>Atualizado automaticamente a cada nova avaliação</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full mt-1.5"></div>
-                <span>Qualquer usuário pode avaliar uma API</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-        
-        {/* Exemplo prático */}
-        <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-          <h5 className="font-semibold text-blue-800 mb-2">🎯 Exemplo de desempate:</h5>
-          <p className="text-sm text-blue-700">
-            Se duas APIs têm nota <strong>4.8</strong>, mas:
-          </p>
-          <ul className="text-sm text-blue-700 mt-1 ml-4">
-            <li>• <strong>API A:</strong> 4.8 com 120 avaliações</li>
-            <li>• <strong>API B:</strong> 4.8 com 85 avaliações</li>
-          </ul>
-          <p className="text-sm text-blue-700 mt-1">
-            A <strong>API A ficará na frente</strong> por ter mais avaliações com a mesma nota!
-          </p>
-        </div>
-      </motion.div>
     </>
   )
 }

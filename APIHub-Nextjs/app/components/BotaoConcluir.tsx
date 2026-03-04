@@ -35,10 +35,10 @@ export default function BotaoConcluir({ cursoId, moduloId, blocoId, proximaAulaU
           'Authorization': `Bearer ${token}` 
         },
         body: JSON.stringify({
-          curso_id: cursoId,   
-          modulo_id: moduloId, 
-          bloco_id: blocoId,   
-          concluido: true
+  curso_id: cursoId,   
+  modulo_id: moduloId, 
+  bloco_id: blocoId,   
+  progresso_percentual: 100
         }),
       });
 

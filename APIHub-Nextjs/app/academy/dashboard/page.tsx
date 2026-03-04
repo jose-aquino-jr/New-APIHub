@@ -5,25 +5,16 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { 
   BookOpen, Clock, CheckCircle, Trophy, TrendingUp,
-  PlayCircle, ChevronRight, Download, BarChart, Loader2
+  PlayCircle, Loader2
 } from 'lucide-react'
 import { useAuth } from '@/components/AuthProvider'
 
 const BACKEND_URL = 'https://apihub-br.duckdns.org'
 
-// --- INTERFACES AJUSTADAS CONFORME DOC ---
-interface DB_Course {
-  id: string
-  titulo: string // Corrigido de 'nome'
-  descricao: string
-  categoria?: string
-  total_aulas?: number
-  carga_horaria?: number // Corrigido de 'horas_estimadas'
-}
-
-// O APIHub retorna o progresso dentro da estrutura do curso ou em endpoint específico
+// Interfaces alinhadas com a Doc e a UI
 interface CourseUI {
   id: string
+  slug: string // Adicionado para navegação correta
   title: string
   description: string
   category: string
@@ -31,8 +22,6 @@ interface CourseUI {
   status: 'in_progress' | 'completed' | 'not_started'
   totalLessons: number
   completedLessons: number
-  timeSpent: number
-  lastAccessed: string
 }
 
 export default function DashboardPage() {
@@ -42,49 +31,64 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function fetchDashboardData() {
-      const token = localStorage.getItem('authToken')
-      if (!token) return
+      // Sincronização de nome de chave de token
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken')
+      if (!token) {
+        setLoading(false)
+        return
+      }
 
       try {
         setLoading(true)
         
-        // 1. Busca todos os cursos disponíveis (Doc 6.1)
+        // 1. Busca cursos (Doc 6.1)
         const resCursos = await fetch(`${BACKEND_URL}/cursos`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
         const cursosData = await resCursos.json()
-        const listaCursos: DB_Course[] = cursosData.success ? cursosData.data : []
+        const listaCursos = cursosData.success ? cursosData.data : []
 
-        // 2. Para cada curso, buscamos o progresso individual (Doc 7.1)
-        // Dica: Em um cenário real, o backend deveria ter um endpoint "meus-cursos"
-        // Para este exemplo, vamos simular a integração com o endpoint /progresso/{id}
-        const merged: CourseUI[] = await Promise.all(listaCursos.map(async (curso) => {
-          const resProg = await fetch(`${BACKEND_URL}/progresso/${curso.id}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          })
-          const progData = await resProg.json()
-          
-          // Se o backend retornar sucesso, pegamos a porcentagem, senão é 0
-          const progressoInfo = progData.success ? progData.data : { porcentagem: 0, aulas_concluidas: [] }
-          const percent = Number(progressoInfo.porcentagem || 0)
+        // 2. Busca Progresso em paralelo (Doc 7.1)
+        const merged: CourseUI[] = await Promise.all(listaCursos.map(async (curso: any) => {
+          try {
+            const resProg = await fetch(`${BACKEND_URL}/curso-progresso/${curso.id}`, { 
+  headers: { 'Authorization': `Bearer ${token}` }
+            })
+            const progData = await resProg.json()
+            const progInfo = progData.success ? progData.data : { porcentagem: 0, detalhes: [] }
+            
+            const percent = Math.round(Number(progInfo.porcentagem || 0))
 
-          return {
-            id: curso.id,
-            title: curso.titulo,
-            description: curso.descricao,
-            category: curso.categoria || 'Desenvolvimento',
-            progress: percent,
-            status: percent === 100 ? 'completed' : (percent > 0 ? 'in_progress' : 'not_started'),
-            totalLessons: curso.total_aulas || 0,
-            completedLessons: progressoInfo.aulas_concluidas?.length || 0,
-            timeSpent: 0, // Campo não disponível diretamente na doc base
-            lastAccessed: 'Recentemente'
+            return {
+              id: curso.id,
+              slug: curso.slug || '', // Garantindo o slug para a URL
+              title: curso.titulo || curso.nome,
+              description: curso.descricao,
+              category: curso.categoria || 'Geral',
+              progress: percent,
+              status: percent === 100 ? 'completed' : (percent > 0 ? 'in_progress' : 'not_started'),
+              totalLessons: curso.total_aulas || 0,
+              completedLessons: progInfo.detalhes?.length || 0
+            }
+          } catch {
+            // Fallback se falhar um curso específico
+            return {
+              id: curso.id,
+              slug: curso.slug || '',
+              title: curso.titulo,
+              description: curso.descricao,
+              category: 'Geral',
+              progress: 0,
+              status: 'not_started' as const,
+              totalLessons: 0,
+              completedLessons: 0
+            }
           }
         }))
 
         setCourses(merged)
       } catch (error) {
-        console.error("Erro ao carregar dashboard:", error)
+        console.error("Erro no Dashboard:", error)
       } finally {
         setLoading(false)
       }
@@ -93,7 +97,6 @@ export default function DashboardPage() {
     fetchDashboardData()
   }, [user])
 
-  // Estatísticas calculadas
   const stats = {
     total: courses.length,
     concluidos: courses.filter(c => c.status === 'completed').length,
@@ -102,69 +105,96 @@ export default function DashboardPage() {
   }
 
   if (loading) return (
-    <div className="flex flex-col items-center justify-center py-20">
-      <Loader2 className="animate-spin text-blue-600 mb-4" size={40} />
-      <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Sincronizando seu progresso...</p>
+    <div className="min-h-[60vh] flex flex-col items-center justify-center">
+      <Loader2 className="animate-spin text-blue-600 mb-6" size={48} />
+      <h2 className="text-sm font-black text-gray-400 uppercase tracking-[0.3em]">Sincronizando sua conta</h2>
     </div>
   )
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-10">
-      {/* Header */}
-      <header>
-        <h1 className="text-4xl font-black text-gray-900 tracking-tight">Painel de <span className="text-blue-600">Controle</span></h1>
-        <p className="text-gray-500 mt-2">Bem-vindo de volta, {user?.name.split(' ')[0]}!</p>
+    <div className="max-w-7xl mx-auto p-6 md:p-10 space-y-12">
+      {/* Saudação com Identidade Visual */}
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div>
+          <h1 className="text-5xl font-black text-gray-900 tracking-tighter leading-none">
+            Meu <span className="text-blue-600">Painel</span>
+          </h1>
+          <p className="text-gray-500 mt-4 font-medium text-lg">
+            Que bom ver você de novo, <span className="text-gray-900 font-bold">{user?.name.split(' ')[0]}</span>.
+          </p>
+        </div>
+        <div className="hidden md:block bg-blue-50 px-6 py-3 rounded-2xl border border-blue-100">
+          <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Seu Score Geral</p>
+          <p className="text-2xl font-black text-blue-700">{stats.media}%</p>
+        </div>
       </header>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <StatCard icon={<BookOpen size={20}/>} label="Cursos" value={stats.total} color="bg-blue-50 text-blue-600" />
-        <StatCard icon={<CheckCircle size={20}/>} label="Concluídos" value={stats.concluidos} color="bg-green-50 text-green-600" />
-        <StatCard icon={<TrendingUp size={20}/>} label="Andamento" value={stats.emAndamento} color="bg-orange-50 text-orange-600" />
-        <StatCard icon={<Trophy size={20}/>} label="Média" value={`${stats.media}%`} color="bg-purple-50 text-purple-600" />
+      {/* Grid de Estatísticas */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+        <StatCard icon={<BookOpen size={20}/>} label="Cursos" value={stats.total} variant="blue" />
+        <StatCard icon={<CheckCircle size={20}/>} label="Concluídos" value={stats.concluidos} variant="green" />
+        <StatCard icon={<TrendingUp size={20}/>} label="Ativos" value={stats.emAndamento} variant="orange" />
+        <StatCard icon={<Trophy size={20}/>} label="Nível" value="Pro" variant="purple" />
       </div>
 
-      {/* Lista de Cursos */}
-      <section className="bg-white rounded-[2.5rem] border border-gray-100 p-8 shadow-sm">
-        <h3 className="text-xl font-black text-gray-900 mb-8 uppercase tracking-widest">Sua Jornada</h3>
+      {/* Lista de Cursos com Design Card-based */}
+      <section>
+        <div className="flex items-center justify-between mb-8">
+          <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.3em]">Cursos na sua trilha</h3>
+          <Link href="/academy" className="text-xs font-bold text-blue-600 hover:underline">Explorar mais</Link>
+        </div>
         
-        <div className="space-y-6">
+        <div className="grid grid-cols-1 gap-6">
           {courses.length === 0 ? (
-            <div className="text-center py-10 border-2 border-dashed border-gray-100 rounded-3xl">
-              <p className="text-gray-400 font-medium">Você ainda não se inscreveu em nenhum curso.</p>
-              <Link href="/academy/courses" className="text-blue-600 font-bold hover:underline mt-2 inline-block">Ver catálogo</Link>
+            <div className="bg-gray-50 rounded-[2.5rem] border-2 border-dashed border-gray-200 p-20 text-center">
+              <p className="text-gray-400 font-bold uppercase text-xs tracking-widest mb-4">Nenhum curso iniciado</p>
+              <Link href="/academy" className="bg-gray-900 text-white px-8 py-4 rounded-xl font-black text-xs uppercase tracking-widest">
+                Começar agora
+              </Link>
             </div>
           ) : (
             courses.map(course => (
-              <div key={course.id} className="group p-6 rounded-3xl border border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all">
-                <div className="flex flex-col lg:flex-row gap-8 items-start lg:items-center">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 bg-gray-100 rounded-md">
-                        {course.category}
-                      </span>
-                    </div>
-                    <h4 className="text-xl font-bold text-gray-900">{course.title}</h4>
-                    <p className="text-gray-500 text-sm line-clamp-1 mt-1">{course.description}</p>
+              <div key={course.id} className="bg-white p-2 rounded-[2rem] border border-gray-100 hover:shadow-2xl hover:shadow-blue-500/5 transition-all group">
+                <div className="p-6 flex flex-col lg:flex-row gap-8 lg:items-center">
+                  <div className="flex-1 space-y-3">
+                    <span className="inline-block px-3 py-1 bg-gray-50 text-[9px] font-black text-gray-500 uppercase tracking-widest rounded-lg">
+                      {course.category}
+                    </span>
+                    <h4 className="text-2xl font-black text-gray-900 tracking-tight group-hover:text-blue-600 transition-colors">
+                      {course.title}
+                    </h4>
+                    <p className="text-gray-400 text-sm font-medium line-clamp-1 italic">
+                      {course.description}
+                    </p>
                   </div>
 
-                  <div className="w-full lg:w-64 space-y-3">
-                    <div className="flex justify-between text-xs font-black uppercase tracking-tighter">
-                      <span className="text-gray-400">Progresso</span>
-                      <span className="text-blue-600">{course.progress}%</span>
+                  <div className="w-full lg:w-72 space-y-4">
+                    <div className="flex justify-between items-end">
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</p>
+                        <p className="text-xs font-bold text-gray-900">{course.progress === 100 ? 'Concluído' : 'Em andamento'}</p>
+                      </div>
+                      <span className="text-2xl font-black text-blue-600 tracking-tighter">{course.progress}%</span>
                     </div>
-                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                    
+                    <div className="h-2.5 bg-gray-50 rounded-full overflow-hidden border border-gray-100">
                       <motion.div 
                         initial={{ width: 0 }}
                         animate={{ width: `${course.progress}%` }}
-                        className="h-full bg-blue-600 rounded-full"
+                        transition={{ duration: 1, ease: "easeOut" }}
+                        className={`h-full rounded-full ${course.progress === 100 ? 'bg-emerald-500' : 'bg-blue-600'}`}
                       />
                     </div>
+
                     <Link 
-                      href={`/academy/courses/${course.id}`}
-                      className="w-full py-3 bg-gray-900 text-white rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-blue-600 transition-colors"
+                      href={`/academy/courses/${course.slug}`}
+                      className={`w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-95 ${
+                        course.progress === 100 
+                        ? 'bg-gray-50 text-gray-900 hover:bg-gray-100' 
+                        : 'bg-gray-900 text-white hover:bg-blue-600 shadow-lg shadow-gray-200'
+                      }`}
                     >
-                      {course.progress === 100 ? 'Revisar' : 'Continuar'} <PlayCircle size={14}/>
+                      {course.progress === 100 ? 'Revisar Conteúdo' : 'Continuar Aprendendo'} <PlayCircle size={14}/>
                     </Link>
                   </div>
                 </div>
@@ -177,13 +207,24 @@ export default function DashboardPage() {
   )
 }
 
-function StatCard({ icon, label, value, color }: any) {
+function StatCard({ icon, label, value, variant }: any) {
+  const styles = {
+    blue: "bg-blue-50/50 text-blue-600 border-blue-100",
+    green: "bg-emerald-50/50 text-emerald-600 border-emerald-100",
+    orange: "bg-orange-50/50 text-orange-600 border-orange-100",
+    purple: "bg-purple-50/50 text-purple-600 border-purple-100"
+  }
+
   return (
-    <div className={`p-6 rounded-[2rem] border border-gray-50 shadow-sm flex items-center gap-4 ${color}`}>
-      <div className="p-3 bg-white rounded-2xl shadow-sm">{icon}</div>
-      <div>
-        <p className="text-[10px] font-black uppercase tracking-widest opacity-70">{label}</p>
-        <p className="text-2xl font-black">{value}</p>
+    <div className={`p-6 rounded-[2rem] border transition-all hover:scale-[1.02] ${styles[variant as keyof typeof styles]}`}>
+      <div className="flex flex-col gap-4">
+        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm text-current">
+          {icon}
+        </div>
+        <div>
+          <p className="text-[9px] font-black uppercase tracking-[0.2em] opacity-60 mb-1">{label}</p>
+          <p className="text-3xl font-black tracking-tighter">{value}</p>
+        </div>
       </div>
     </div>
   )
