@@ -4,6 +4,7 @@ import React from 'react';
 import { notFound } from 'next/navigation';
 import CourseContent from '@/components/CourseContent';
 import BotaoContinuar from '@/components/BotaoContinuar';
+import { cursorTo } from 'readline';
 
 // --- CONFIGURAÇÃO ---
 const API_BASE = 'https://apihub-br.duckdns.org';
@@ -139,6 +140,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
                  <BotaoContinuar 
                    slug={slug} 
                    primeiraAulaId={primeiraAulaId} 
+                   cursoId={course.id}
                  />
                </div>
                {/* Efeito visual de fundo no card */}
