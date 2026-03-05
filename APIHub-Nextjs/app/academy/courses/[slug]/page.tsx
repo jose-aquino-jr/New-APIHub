@@ -4,14 +4,12 @@ import React from 'react';
 import { notFound } from 'next/navigation';
 import CourseContent from '@/components/CourseContent';
 import BotaoContinuar from '@/components/BotaoContinuar';
-import { cursorTo } from 'readline';
 
 // --- CONFIGURAÇÃO ---
 const API_BASE = 'https://apihub-br.duckdns.org';
 
 async function getCourseData(slug: string) {
   try {
-    // 1. Busca por slug (Ajustado para /by-slug conforme doc pág 23)
     const res = await fetch(`${API_BASE}/cursos/by-slug/${slug}`, {
       next: { revalidate: 60 } 
     });
@@ -22,8 +20,8 @@ async function getCourseData(slug: string) {
 
     if (!basicData || !basicData.id) return basicData;
 
-    // 2. CORREÇÃO: Busca a estrutura completa conforme Seção 6.5 da Doc
-    // Endpoint documentado: /curso-completo/{curso_id}
+    // 2. Busca a estrutura completa (módulos + blocos) usando o ID
+    // Conforme Seção 6.5 da Doc: GET /curso-completo/{curso_id} [cite: 243, 244]
     const resFull = await fetch(`${API_BASE}/curso-completo/${basicData.id}`, {
       next: { revalidate: 60 }
     });
@@ -31,6 +29,8 @@ async function getCourseData(slug: string) {
     if (!resFull.ok) return basicData;
 
     const fullResponse = await resFull.json();
+    
+    // Retorna os dados completos contidos no objeto 'data' 
     return fullResponse.success ? fullResponse.data : basicData;
 
   } catch (error) {
@@ -45,8 +45,11 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
 
   if (!course) notFound();
 
-  // Tratamento resiliente para encontrar a primeira aula
+  // Tratamento resiliente para garantir que os módulos e blocos sejam encontrados
+  // A API pode retornar 'modulos' ou 'curso_modulos' 
   const modulos = course.modulos || course.curso_modulos || [];
+  
+  // Localiza a primeira aula para o botão "Começar"
   const primeiroModulo = modulos[0];
   const blocos = primeiroModulo?.blocos || primeiroModulo?.curso_blocos || [];
   const primeiraAulaId = blocos[0]?.id || '';
@@ -67,18 +70,18 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
             <div className="flex-1">
               <div className="flex gap-2 mb-6">
                 <span className="px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-blue-50 text-blue-600 border border-blue-100">
-                  {course.nivel || 'Iniciante'}
+                  {course.nivel || 'Iniciante'} [cite: 245]
                 </span>
                 <span className="px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-gray-50 text-gray-500 border border-gray-100 flex items-center gap-1">
-                  <Clock size={12} /> {course.duracao_estimada || 0}h estimadas
+                  <Clock size={12} /> {course.duracao_estimada || 0}h estimadas [cite: 245]
                 </span>
               </div>
               
               <h1 className="text-4xl sm:text-6xl font-black text-gray-900 mb-6 tracking-tighter leading-[1.1]">
-                {course.titulo}
+                {course.titulo} [cite: 245]
               </h1>
               <p className="text-gray-500 text-lg leading-relaxed mb-8 font-medium max-w-2xl">
-                {course.descricao}
+                {course.descricao} [cite: 245]
               </p>
 
               <div className="flex items-center gap-3">
@@ -102,7 +105,6 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
               </div>
             )}
           </div>
-          {/* Decoração de fundo */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full blur-3xl -mr-32 -mt-32 opacity-50" />
         </section>
 
@@ -114,6 +116,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
               Grade Curricular
             </h2>
 
+            {/* Passamos o objeto completo com os módulos injetados */}
             <CourseContent initialData={course} />
           </div>
 
@@ -143,7 +146,6 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
                    cursoId={course.id}
                  />
                </div>
-               {/* Efeito visual de fundo no card */}
                <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-blue-600 rounded-full blur-[80px] opacity-20 group-hover:opacity-40 transition-opacity" />
             </div>
           </div>
