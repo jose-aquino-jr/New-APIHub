@@ -11,8 +11,8 @@ const API_BASE = 'https://apihub-br.duckdns.org';
 
 async function getCourseData(slug: string) {
   try {
-    // 1. Busca os dados básicos para descobrir o ID do curso
-    const res = await fetch(`${API_BASE}/cursos/slug/${slug}`, {
+    // 1. Busca por slug (Ajustado para /by-slug conforme doc pág 23)
+    const res = await fetch(`${API_BASE}/cursos/by-slug/${slug}`, {
       next: { revalidate: 60 } 
     });
 
@@ -22,9 +22,9 @@ async function getCourseData(slug: string) {
 
     if (!basicData || !basicData.id) return basicData;
 
-    // 2. Busca a estrutura completa (módulos + blocos) usando o ID
-    // Conforme Seção 6.2 da Doc: /cursos/{id}/details
-    const resFull = await fetch(`${API_BASE}/cursos/${basicData.id}/details`, {
+    // 2. CORREÇÃO: Busca a estrutura completa conforme Seção 6.5 da Doc
+    // Endpoint documentado: /curso-completo/{curso_id}
+    const resFull = await fetch(`${API_BASE}/curso-completo/${basicData.id}`, {
       next: { revalidate: 60 }
     });
 
