@@ -20,8 +20,8 @@ async function getCourseData(slug: string) {
 
     if (!basicData || !basicData.id) return basicData;
 
-    // Conforme Seção 6.5 da Doc: GET /curso-completo/{curso_id}
-    const resFull = await fetch(`${API_BASE}/completo/${basicData.id}`, {
+    // Conforme Seção 6.5 da Doc: GET /cursos/completo/{curso_id}
+    const resFull = await fetch(`${API_BASE}/cursos/completo/${basicData.id}`, {
       next: { revalidate: 60 }
     });
 
