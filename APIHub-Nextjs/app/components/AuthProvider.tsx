@@ -7,8 +7,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 interface User {
   id: string
   email: string
-  description: string
-  tecnologies: string
+  bio: string
+  preferredLanguages: string[] | string  
   name: string
   accept_terms?: boolean
   avatar_url?: string
@@ -177,8 +177,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                      payload.user_metadata?.picture,
           provider: payload.app_metadata?.provider || 'google',
           accept_terms: false,
-          description: '',
-          tecnologies:''
+          bio: '',
+          preferredLanguages: []
         }
       } else {
         // Não é JWT (GitHub provider_token) - criar usuário básico
@@ -193,8 +193,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           avatar_url: '',
           provider: 'github',
           accept_terms: false,
-          description: '',
-          tecnologies:''
+          bio: '',
+          preferredLanguages: []
         }
         
         console.warn('⚠️ GitHub provider_token - precisamos implementar busca de dados do usuário')
@@ -430,8 +430,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           accept_terms: result.data?.user?.accept_terms || false,
           avatar_url: result.data?.user?.avatar_url,
           provider: result.data?.user?.provider,
-          description: result.data?.user?.description || '',
-          tecnologies: result.data?.user?.tecnologies || ''
+          bio: result.data?.user?.bio || '',
+          preferredLanguages: result.data?.user?.preferredLanguages || []
         }
         
         const accessToken = result.data?.session?.access_token

@@ -1,55 +1,42 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Bell, Shield, Mail, Camera, User, Loader2, Check, Save } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { Camera, User, Loader2, Check, Save } from 'lucide-react'
 import { useAuth } from '@/components/AuthProvider'
 import { toast, Toaster } from 'sonner'
 
+// Lista de tecnologias para seleção
 const BACKEND_TECHS = [
-  'Node.js', 'Python', 'Go (Golang)', 'Java', 'C# (.NET)', 
-  'PHP', 'Ruby on Rails', 'Rust', 'Elixir', 'C++', 
-  'TypeScript', 'Kotlin', 'Scala', 'Dart (Shelf)', 'Perl'
+  'Node.js', 'Python', 'Go', 'Java', 'C#', 
+  'PHP', 'Ruby', 'Rust', 'TypeScript', 'C++'
 ]
 
 export default function Configuracoes() {
-  const { user } = useAuth()
+  const { user, refreshUserData } = useAuth() // FIX 1: importar refreshUserData
   const fileInputRef = useRef<HTMLInputElement>(null)
   
-  // States inicializados com os dados do usuário
   const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
+  const [bio, setBio] = useState('')
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [selectedTechs, setSelectedTechs] = useState<string[]>([])
+  const [preferredLanguages, setPreferredLanguages] = useState<string[]>([])
   const [isSaving, setIsSaving] = useState(false)
 
-  // Sincroniza estados quando o user carrega
   useEffect(() => {
     if (user) {
       setName(user.name || '')
-      setDescription(user.description || '')
+      setBio(user.bio || '')
       setPreviewUrl(user.avatar_url || null)
-      if (user.tecnologies) {
-        setSelectedTechs(user.tecnologies.split(',').filter(t => t !== ''))
+      if (Array.isArray(user.preferredLanguages)) {
+        setPreferredLanguages(user.preferredLanguages)
+      } else if (typeof user.preferredLanguages === 'string') {
+        setPreferredLanguages(user.preferredLanguages.split(',').filter(Boolean))
       }
     }
   }, [user])
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        toast.error("Imagem muito grande", { description: "O limite é de 2MB." })
-        return
-      }
-      const reader = new FileReader()
-      reader.onloadend = () => setPreviewUrl(reader.result as string)
-      reader.readAsDataURL(file)
-    }
-  }
-
   const toggleTech = (tech: string) => {
-    setSelectedTechs(prev => 
+    setPreferredLanguages(prev => 
       prev.includes(tech) ? prev.filter(t => t !== tech) : [...prev, tech]
     )
   }
@@ -58,24 +45,21 @@ export default function Configuracoes() {
     setIsSaving(true)
     const token = localStorage.getItem('authToken')
 
-    if (!token) {
-      toast.error("Sessão expirada", { description: "Faça login novamente." })
+    if (!token || !user?.id) {
+      toast.error("Sessão inválida", { description: "Por favor, faça login novamente." })
       setIsSaving(false)
       return
     }
 
     try {
       const payload = {
-        name,
-        description,
-        tecnologies: selectedTechs.join(','),
-        // IMPORTANTE: Só enviamos o avatar_url se ele for uma nova imagem (base64) 
-        // ou se já for uma URL existente.
-        avatar_url: previewUrl 
+        name: name,
+        bio: bio,
+        preferredLanguages: preferredLanguages,
       }
 
-      const res = await fetch('https://apihub-br.duckdns.org/users/me', {
-        method: 'PATCH',
+      const res = await fetch(`https://apihub-br.duckdns.org/users/profile/${user.id}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -84,18 +68,24 @@ export default function Configuracoes() {
       })
 
       if (res.ok) {
-        const data = await res.json()
-        toast.success("Perfil sincronizado!", {
-          description: "Suas alterações já estão visíveis no APIHub."
+        toast.success("Perfil atualizado!", {
+          description: "As alterações foram persistidas no banco de dados."
         })
-        
-        // Dica: Se o seu useAuth tiver uma função 'refreshUser', chame-a aqui.
+        await refreshUserData() // FIX 1: sincroniza o contexto com os dados novos
       } else {
-        const errorData = await res.json()
-        throw new Error(errorData.detail || "Erro ao salvar dados")
+        // FIX 2: tenta parsear o erro, mas não deixa uma falha de parse
+        // esconder a mensagem real — usa o status HTTP como fallback
+        let errorMessage = `Erro ${res.status}`
+        try {
+          const errorData = await res.json()
+          errorMessage = errorData.message || errorMessage
+        } catch {
+          // corpo da resposta não era JSON, mantém o fallback de status
+        }
+        throw new Error(errorMessage)
       }
     } catch (error: any) {
-      toast.error("Falha na atualização", { description: error.message })
+      toast.error("Falha na sincronização", { description: error.message })
     } finally {
       setIsSaving(false)
     }
@@ -114,14 +104,14 @@ export default function Configuracoes() {
         
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-10 text-center md:text-left">
           <h1 className="text-4xl font-black text-gray-900 tracking-tight">Configurações</h1>
-          <p className="text-gray-500 mt-1">Sincronize seu perfil com o Catálogo de APIs.</p>
+          <p className="text-gray-500 mt-1">Gerencie seu perfil público no APIHub.</p>
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* Avatar Card */}
+          {/* Card Lateral - Perfil */}
           <div className="lg:col-span-1">
-            <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 text-center sticky top-28 transition-all hover:shadow-md">
+            <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 text-center sticky top-28">
               <div className="relative inline-block group">
                 <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-100 border-4 border-white shadow-xl mx-auto">
                   {previewUrl ? (
@@ -132,13 +122,9 @@ export default function Configuracoes() {
                     </div>
                   )}
                 </div>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="absolute bottom-0 right-0 bg-blue-600 p-2.5 rounded-full text-white shadow-lg hover:scale-110 transition-all z-10"
-                >
+                <button className="absolute bottom-0 right-0 bg-blue-600 p-2.5 rounded-full text-white shadow-lg hover:scale-110 transition-all">
                   <Camera size={18} />
                 </button>
-                <input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/*" className="hidden" />
               </div>
               <div className="mt-4">
                 <h3 className="font-bold text-xl text-gray-900 truncate">{name || user.name}</h3>
@@ -147,16 +133,16 @@ export default function Configuracoes() {
             </div>
           </div>
 
-          {/* Form Content */}
+          {/* Formulário Principal */}
           <div className="lg:col-span-2 space-y-6">
             <section className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
               <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                <User size={20} className="text-blue-600" /> Informações da Conta
+                <User size={20} className="text-blue-600" /> Informações de Usuário
               </h2>
               
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-gray-700 ml-1">Nome de Exibição</label>
+                  <label className="text-sm font-bold text-gray-700 ml-1">Nome Completo</label>
                   <input
                     type="text"
                     value={name}
@@ -166,20 +152,20 @@ export default function Configuracoes() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-gray-700 ml-1">Bio Profissional</label>
+                  <label className="text-sm font-bold text-gray-700 ml-1">Bio (Biografia)</label>
                   <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
                     className="w-full p-4 h-28 rounded-2xl border border-gray-100 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
-                    placeholder="Conte um pouco sobre suas experiências com APIs..."
+                    placeholder="Fale sobre sua experiência com APIs..."
                   />
                 </div>
 
                 <div className="space-y-3">
-                  <label className="text-sm font-bold text-gray-700 ml-1">Stack de Backend</label>
+                  <label className="text-sm font-bold text-gray-700 ml-1">Linguagens Preferidas</label>
                   <div className="flex flex-wrap gap-2 p-4 rounded-2xl border border-gray-100 bg-gray-50/50">
                     {BACKEND_TECHS.map((tech) => {
-                      const isSelected = selectedTechs.includes(tech)
+                      const isSelected = preferredLanguages.includes(tech)
                       return (
                         <button
                           key={tech}
@@ -202,28 +188,11 @@ export default function Configuracoes() {
                 <button 
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="w-full md:w-auto bg-gray-900 text-white px-10 py-4 rounded-2xl font-bold hover:bg-black transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full md:w-auto bg-gray-900 text-white px-10 py-4 rounded-2xl font-bold hover:bg-black transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {isSaving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
-                  {isSaving ? "Sincronizando..." : "Salvar Alterações"}
+                  {isSaving ? "Guardando..." : "Salvar Alterações"}
                 </button>
-              </div>
-            </section>
-
-            {/* Preferências (Simulado) */}
-            <section className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 opacity-80">
-              <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                <Bell size={20} className="text-blue-600" /> Notificações
-              </h2>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-2">
-                  <div className="text-sm font-medium text-gray-700">Avisar quando minha API for favoritada</div>
-                  <div className="w-10 h-5 bg-blue-600 rounded-full"></div>
-                </div>
-                <div className="flex items-center justify-between p-2 border-t border-gray-50 pt-4">
-                  <div className="text-sm font-medium text-gray-700">Receber newsletter da Academy</div>
-                  <div className="w-10 h-5 bg-gray-200 rounded-full"></div>
-                </div>
               </div>
             </section>
           </div>

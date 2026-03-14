@@ -1,8 +1,8 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import Link from 'next/link'
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import Link from "next/link";
 import {
   Star,
   Shield,
@@ -18,364 +18,442 @@ import {
   MessageSquare,
   Heart,
   Users,
-  BarChart3
-} from 'lucide-react'
-import {
-  parseParameters,
-  generateSlug,
-} from '@/lib/utils'
-import { useAuth } from './AuthProvider'
-import type { API } from '@/types'
+  BarChart3,
+} from "lucide-react";
+import { parseParameters, generateSlug } from "@/lib/utils";
+import { useAuth } from "./AuthProvider";
+import type { API } from "@/types";
 
 interface APIDetailClientProps {
-  initialApi: API
-  initialRelated: API[]
-  initialCategory: string
+  initialApi: API;
+  initialRelated: API[];
+  initialCategory: string;
 }
 
 interface RatingStats {
-  average: number
-  total: number
-  ratingCounts: Record<number, number>
-  ratingPercentages: Record<number, number>
+  average: number;
+  total: number;
+  ratingCounts: Record<number, number>;
+  ratingPercentages: Record<number, number>;
   distribution: Array<{
-    stars: number
-    count: number
-    percentage: number
-  }>
+    stars: number;
+    count: number;
+    percentage: number;
+  }>;
 }
 
 const getRatingStars = (rating?: number) => {
-  if (!rating || rating === 0) return 0
-  return Math.round(rating)
-}
+  if (!rating || rating === 0) return 0;
+  return Math.round(rating);
+};
 
 const formatRating = (rating?: number) => {
-  if (!rating || rating === 0) return 'Sem avaliações'
-  return rating.toFixed(1)
-}
+  if (!rating || rating === 0) return "Sem avaliações";
+  return rating.toFixed(1);
+};
 
 const getRatingDescription = (rating: number) => {
   switch (rating) {
-    case 1: return 'Péssima'
-    case 2: return 'Ruim'
-    case 3: return 'Regular'
-    case 4: return 'Boa'
-    case 5: return 'Excelente'
-    default: return 'Selecione uma nota'
+    case 1:
+      return "Péssima";
+    case 2:
+      return "Ruim";
+    case 3:
+      return "Regular";
+    case 4:
+      return "Boa";
+    case 5:
+      return "Excelente";
+    default:
+      return "Selecione uma nota";
   }
-}
+};
 
 const getCategoryColor = (category: string) => {
   const colors: Record<string, string> = {
-    Palavras: 'badge-blue',
-    IA: 'badge-purple',
-    Financeiro: 'badge-green',
-    default: 'badge-blue',
-  }
-  return colors[category] || colors.default
-}
+    Palavras: "badge-blue",
+    IA: "badge-purple",
+    Financeiro: "badge-green",
+    default: "badge-blue",
+  };
+  return colors[category] || colors.default;
+};
 
-export function APIDetailClient({ initialApi, initialRelated, initialCategory }: APIDetailClientProps) {
-  const [api, setApi] = useState<API>(initialApi)
-  const [relatedApis, setRelatedApis] = useState<API[]>(initialRelated)
-  const [copied, setCopied] = useState(false)
-  const auth = useAuth()
-  const { user, token, favorites, toggleFavorite, isAuthenticated } = auth
+export function APIDetailClient({
+  initialApi,
+  initialRelated,
+  initialCategory,
+}: APIDetailClientProps) {
+  const [api, setApi] = useState<API>(initialApi);
+  const [relatedApis, setRelatedApis] = useState<API[]>(initialRelated);
+  const [copied, setCopied] = useState(false);
+  const auth = useAuth();
+  const { user, token, favorites, toggleFavorite, isAuthenticated } = auth;
 
-  const [showReportMenu, setShowReportMenu] = useState(false)
-  const [showRateMenu, setShowRateMenu] = useState(false)
-  const [reportReason, setReportReason] = useState('')
-  const [reportCustomReason, setReportCustomReason] = useState('')
-  const [rating, setRating] = useState<number>(0)
-  const [ratingComment, setRatingComment] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState<{type: 'success' | 'error' | 'info', text: string} | null>(null)
-  const [isFavorite, setIsFavorite] = useState(false)
-  
-  const [ratingStats, setRatingStats] = useState<RatingStats | null>(null)
-  const [loadingStats, setLoadingStats] = useState(false)
-  const [userHasRated, setUserHasRated] = useState(false)
+  const [showReportMenu, setShowReportMenu] = useState(false);
+  const [showRateMenu, setShowRateMenu] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [reportCustomReason, setReportCustomReason] = useState("");
+  const [rating, setRating] = useState<number>(0);
+  const [ratingComment, setRatingComment] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<{
+    type: "success" | "error" | "info";
+    text: string;
+  } | null>(null);
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  const [ratingStats, setRatingStats] = useState<RatingStats | null>(null);
+  const [loadingStats, setLoadingStats] = useState(false);
+  const [userHasRated, setUserHasRated] = useState(false);
 
   useEffect(() => {
     if (api && favorites) {
-      setIsFavorite(favorites.includes(api.id))
+      setIsFavorite(favorites.includes(api.id));
     }
-  }, [api, favorites])
+  }, [api, favorites]);
 
   useEffect(() => {
     if (user && api.id) {
-      loadUserRating(api.id)
+      loadUserRating(api.id);
     }
     if (api.id) {
-      loadRatingStats(api.id)
+      loadRatingStats(api.id);
     }
-  }, [api.id, user])
+  }, [api.id, user]);
 
   const loadUserRating = async (apiId: string) => {
     try {
       if (!user || !token) {
-        setUserHasRated(false)
-        return
+        setUserHasRated(false);
+        return;
       }
-      
-      const response = await fetch(`https://apihub-br.duckdns.org/avaliacao/user/${apiId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
-      
+
+      const response = await fetch(
+        `https://apihub-br.duckdns.org/avaliacao/user/${apiId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
       if (response.status === 401) {
-        setUserHasRated(false)
-        return
+        setUserHasRated(false);
+        return;
       }
-      
+
       if (response.status === 404) {
-        setUserHasRated(false)
-        return
+        setUserHasRated(false);
+        return;
       }
-      
+
       if (!response.ok) {
-        setUserHasRated(false)
-        return
+        setUserHasRated(false);
+        return;
       }
-      
-      const data = await response.json()
-      
+
+      const data = await response.json();
+
       if (data.success && data.data) {
-        setRating(data.data.rating)
-        setRatingComment(data.data.comment || '')
-        setUserHasRated(true)
+        setRating(data.data.rating);
+        setRatingComment(data.data.comment || "");
+        setUserHasRated(true);
       } else {
-        setUserHasRated(false)
+        setUserHasRated(false);
       }
     } catch (error) {
-      console.error('Erro ao carregar avaliação do usuário:', error)
-      setUserHasRated(false)
+      console.error("Erro ao carregar avaliação do usuário:", error);
+      setUserHasRated(false);
     }
-  }
+  };
 
   const loadRatingStats = async (apiId: string) => {
     try {
-      setLoadingStats(true)
-      
-      const response = await fetch(`https://apihub-br.duckdns.org/avaliacao/stats/${apiId}`)
-      
+      setLoadingStats(true);
+
+      const response = await fetch(
+        `https://apihub-br.duckdns.org/avaliacao/stats/${apiId}`,
+      );
+
       if (!response.ok) {
-        setRatingStats(null)
-        return
+        setRatingStats(null);
+        return;
       }
-      
-      const data = await response.json()
-      
+
+      const data = await response.json();
+
       if (data.success && data.stats) {
-        setRatingStats(data.stats)
+        setRatingStats(data.stats);
       } else {
-        setRatingStats(null)
+        setRatingStats(null);
       }
     } catch (error) {
-      console.error('Erro ao carregar estatísticas:', error)
-      setRatingStats(null)
+      console.error("Erro ao carregar estatísticas:", error);
+      setRatingStats(null);
     } finally {
-      setLoadingStats(false)
+      setLoadingStats(false);
     }
-  }
+  };
 
   const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const handleAuthError = () => {
-    setMessage({type: 'error', text: 'Sessão expirada. Redirecionando para login...'})
+    setMessage({
+      type: "error",
+      text: "Sessão expirada. Redirecionando para login...",
+    });
     setTimeout(() => {
-      const redirectPath = encodeURIComponent(window.location.pathname)
-      window.location.href = `/login?redirect=${redirectPath}`
-    }, 2000)
-    return false
-  }
+      const redirectPath = encodeURIComponent(window.location.pathname);
+      window.location.href = `/login?redirect=${redirectPath}`;
+    }, 2000);
+    return false;
+  };
 
   const handleReport = async (reason: string) => {
     if (!user || !token) {
-      setMessage({type: 'error', text: 'Você precisa estar logado para denunciar uma API'})
+      setMessage({
+        type: "error",
+        text: "Você precisa estar logado para denunciar uma API",
+      });
       setTimeout(() => {
-        const redirectPath = encodeURIComponent(window.location.pathname)
-        window.location.href = `/login?redirect=${redirectPath}`
-      }, 1500)
-      return
+        const redirectPath = encodeURIComponent(window.location.pathname);
+        window.location.href = `/login?redirect=${redirectPath}`;
+      }, 1500);
+      return;
     }
 
-    if (!api) return
+    if (!api) return;
 
-    setLoading(true)
-    setMessage(null)
+    setLoading(true);
+    setMessage(null);
 
     try {
-      const finalReason = reason === 'Outros' ? reportCustomReason : reason
-      
+      const finalReason = reason === "Outros" ? reportCustomReason : reason;
+
       if (!finalReason.trim()) {
-        setMessage({type: 'error', text: 'Por favor, informe o motivo da denúncia'})
-        setLoading(false)
-        return
+        setMessage({
+          type: "error",
+          text: "Por favor, informe o motivo da denúncia",
+        });
+        setLoading(false);
+        return;
       }
 
-      const response = await fetch('https://apihub-br.duckdns.org/api-reports', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      // FIX 1: endpoint corrigido de /api-reports para /apis/reports (seção 3.15)
+      const response = await fetch(
+        "https://apihub-br.duckdns.org/apis/reports",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            api_id: api.id,
+            reason: finalReason,
+          }),
         },
-        body: JSON.stringify({
-          api_id: api.id,
-          reason: finalReason
-        })
-      })
+      );
 
       if (response.status === 401) {
-        const refreshed = await auth.checkSession()
+        const refreshed = await auth.checkSession();
         if (!refreshed) {
-          handleAuthError()
-          setLoading(false)
-          return
+          handleAuthError();
+          setLoading(false);
+          return;
         }
-        return handleReport(reason)
+        // FIX 2: return adicionado para evitar continuar executando o fluxo
+        // abaixo após a chamada recursiva, o que causava comportamento duplo
+        return handleReport(reason);
       }
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
         if (data.message) {
-          throw new Error(data.message)
+          throw new Error(data.message);
         } else {
-          throw new Error(`Erro HTTP ${response.status}`)
+          throw new Error(`Erro HTTP ${response.status}`);
         }
       }
 
       if (data.success) {
-        setMessage({type: 'success', text: 'Denúncia enviada com sucesso! Nossa equipe analisará o caso.'})
-        setShowReportMenu(false)
-        setReportReason('')
-        setReportCustomReason('')
+        setMessage({
+          type: "success",
+          text: "Denúncia enviada com sucesso! Nossa equipe analisará o caso.",
+        });
+        setShowReportMenu(false);
+        setReportReason("");
+        setReportCustomReason("");
       } else {
-        setMessage({type: 'error', text: data.message || 'Erro ao enviar denúncia'})
+        setMessage({
+          type: "error",
+          text: data.message || "Erro ao enviar denúncia",
+        });
       }
     } catch (error) {
-      console.error('Erro completo ao denunciar:', error)
-      setMessage({type: 'error', text: error instanceof Error ? error.message : 'Erro ao enviar denúncia'})
+      console.error("Erro completo ao denunciar:", error);
+      setMessage({
+        type: "error",
+        text:
+          error instanceof Error ? error.message : "Erro ao enviar denúncia",
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleRate = async () => {
     if (!user) {
-      setMessage({type: 'error', text: 'Você precisa estar logado para avaliar uma API'})
+      setMessage({
+        type: "error",
+        text: "Você precisa estar logado para avaliar uma API",
+      });
       setTimeout(() => {
-        const redirectPath = encodeURIComponent(window.location.pathname)
-        window.location.href = `/login?redirect=${redirectPath}`
-      }, 1500)
-      return
+        const redirectPath = encodeURIComponent(window.location.pathname);
+        window.location.href = `/login?redirect=${redirectPath}`;
+      }, 1500);
+      return;
     }
 
-    if (!api) return
+    if (!api) return;
 
     if (userHasRated) {
-      setMessage({type: 'info', text: 'Você já avaliou esta API. Cada usuário pode avaliar uma API apenas uma vez.'})
-      return
+      setMessage({
+        type: "info",
+        text: "Você já avaliou esta API. Cada usuário pode avaliar uma API apenas uma vez.",
+      });
+      return;
     }
 
     if (rating === 0) {
-      setMessage({type: 'error', text: 'Por favor, selecione uma avaliação'})
-      return
+      setMessage({ type: "error", text: "Por favor, selecione uma avaliação" });
+      return;
     }
 
-    setLoading(true)
-    setMessage(null)
+    setLoading(true);
+    setMessage(null);
 
     try {
-      const response = await fetch('https://apihub-br.duckdns.org/avaliacao', {
-        method: 'POST',
+      const response = await fetch("https://apihub-br.duckdns.org/avaliacao", {
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           api_id: api.id,
           rating: rating,
-          comment: ratingComment
-        })
-      })
+          comment: ratingComment,
+        }),
+      });
 
       if (response.status === 401) {
-        handleAuthError()
-        setLoading(false)
-        return
+        handleAuthError();
+        setLoading(false);
+        return;
       }
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (data.success) {
-        setMessage({type: 'success', text: 'Avaliação enviada com sucesso!'})
-        setShowRateMenu(false)
-        setUserHasRated(true)
-        
+        setMessage({ type: "success", text: "Avaliação enviada com sucesso!" });
+        setShowRateMenu(false);
+        setUserHasRated(true);
+
         if (api.id) {
-          await loadRatingStats(api.id)
+          await loadRatingStats(api.id);
         }
-        
-        setRating(0)
-        setRatingComment('')
+
+        setRating(0);
+        setRatingComment("");
       } else {
-        if (data.message?.includes('já está') || data.message?.includes('duplicada')) {
-          setMessage({type: 'info', text: 'Você já avaliou esta API anteriormente.'})
-          setUserHasRated(true)
+        if (
+          data.message?.includes("já está") ||
+          data.message?.includes("duplicada")
+        ) {
+          setMessage({
+            type: "info",
+            text: "Você já avaliou esta API anteriormente.",
+          });
+          setUserHasRated(true);
         } else {
-          setMessage({type: 'error', text: data.message || 'Erro ao enviar avaliação'})
+          setMessage({
+            type: "error",
+            text: data.message || "Erro ao enviar avaliação",
+          });
         }
       }
     } catch (error) {
-      setMessage({type: 'error', text: 'Erro ao conectar com o servidor'})
-      console.error('Erro:', error)
+      setMessage({ type: "error", text: "Erro ao conectar com o servidor" });
+      console.error("Erro:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleFavoriteToggle = async () => {
-    if (!api) return
-    
+    if (!api) return;
+
     if (!user) {
-      setMessage({type: 'error', text: 'Você precisa estar logado para favoritar APIs'})
+      setMessage({
+        type: "error",
+        text: "Você precisa estar logado para favoritar APIs",
+      });
       setTimeout(() => {
-        const redirectPath = encodeURIComponent(window.location.pathname)
-        window.location.href = `/login?redirect=${redirectPath}`
-      }, 1500)
-      return
+        const redirectPath = encodeURIComponent(window.location.pathname);
+        window.location.href = `/login?redirect=${redirectPath}`;
+      }, 1500);
+      return;
     }
 
     try {
-      await toggleFavorite(api.id)
-      setIsFavorite(!isFavorite)
+      await toggleFavorite(api.id);
+      setIsFavorite(!isFavorite);
     } catch (error) {
-      console.error('Erro ao favoritar:', error)
-      setMessage({type: 'error', text: 'Erro ao favoritar API'})
+      console.error("Erro ao favoritar:", error);
+      setMessage({ type: "error", text: "Erro ao favoritar API" });
     }
-  }
+  };
 
   const reportOptions = [
-    { id: 'api_offline', label: '⚠️ API Inútil / Fora do ar', description: 'API não está funcionando ou retorna erros' },
-    { id: 'offensive_content', label: '🚫 Conteúdo Ofensivo', description: 'Conteúdo impróprio, ofensivo ou inadequado' },
-    { id: 'fake_data', label: '❌ Dados Falsos', description: 'API retorna informações incorretas ou falsas' },
-    { id: 'terms_violation', label: '🛡️ Violação de Termos', description: 'API viola nossos termos de serviço' },
-    { id: 'other', label: '📝 Outros', description: 'Outro motivo não listado' }
-  ]
+    {
+      id: "api_offline",
+      label: "⚠️ API Inútil / Fora do ar",
+      description: "API não está funcionando ou retorna erros",
+    },
+    {
+      id: "offensive_content",
+      label: "🚫 Conteúdo Ofensivo",
+      description: "Conteúdo impróprio, ofensivo ou inadequado",
+    },
+    {
+      id: "fake_data",
+      label: "❌ Dados Falsos",
+      description: "API retorna informações incorretas ou falsas",
+    },
+    {
+      id: "terms_violation",
+      label: "🛡️ Violação de Termos",
+      description: "API viola nossos termos de serviço",
+    },
+    {
+      id: "other",
+      label: "📝 Outros",
+      description: "Outro motivo não listado",
+    },
+  ];
 
-  const fullUrl = `${api.base_url}${api.endpoint_path || ''}`
-  const parameters = api.parameters ? parseParameters(api.parameters) : {}
-  const apiRating = api.rating || 0
-  const starCount = getRatingStars(api.rating)
+  const fullUrl = `${api.base_url}${api.endpoint_path || ""}`;
+  const parameters = api.parameters ? parseParameters(api.parameters) : {};
+  const apiRating = api.rating || 0;
+  const starCount = getRatingStars(api.rating);
 
   return (
     <div className="container-custom py-6 px-4">
@@ -385,17 +463,17 @@ export function APIDetailClient({ initialApi, initialRelated, initialCategory }:
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className={`mb-6 p-4 rounded-xl border ${
-            message.type === 'success' 
-              ? 'bg-green-50 border-green-200 text-green-800' 
-              : message.type === 'error'
-              ? 'bg-red-50 border-red-200 text-red-800'
-              : 'bg-blue-50 border-blue-200 text-blue-800'
+            message.type === "success"
+              ? "bg-green-50 border-green-200 text-green-800"
+              : message.type === "error"
+                ? "bg-red-50 border-red-200 text-red-800"
+                : "bg-blue-50 border-blue-200 text-blue-800"
           }`}
         >
           <div className="flex items-center gap-2">
-            {message.type === 'success' ? (
+            {message.type === "success" ? (
               <Check className="w-5 h-5" />
-            ) : message.type === 'error' ? (
+            ) : message.type === "error" ? (
               <AlertCircle className="w-5 h-5" />
             ) : (
               <AlertCircle className="w-5 h-5 text-blue-600" />
@@ -409,7 +487,7 @@ export function APIDetailClient({ initialApi, initialRelated, initialCategory }:
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="card mb-8"
+        className="card mb-"
       >
         <div className="flex flex-col gap-4">
           {/* LINHA SUPERIOR */}
@@ -420,22 +498,33 @@ export function APIDetailClient({ initialApi, initialRelated, initialCategory }:
               </span>
               <span className="text-orange-600 font-semibold">GRATUITA</span>
               <span className="text-purple-700 font-semibold">Por:</span>
-              <Link href={`/users/profile/${api.created_by_id}`}
-                className="text-blue-600 hover:underline font-medium"
-              >{api.created_by || "Comunidade"}</Link>
+              {api.created_by_id ? (
+                <Link
+                  href={`/profile/${api.created_by_id}`}
+                  className="text-blue-600 hover:underline font-medium"
+                >
+                  {api.created_by || "Comunidade"}
+                </Link>
+              ) : (
+                <span className="font-medium text-gray-600">Comunidade</span>
+              )}    
             </div>
 
             {/* AÇÕES */}
-            <div className="flex items-center gap-3 relative">
+            <div className="flex items-center gap-3">
               {/* FAVORITO */}
               <button
                 onClick={handleFavoriteToggle}
                 className={`p-2.5 rounded-xl shadow-sm transition-all ${
                   isFavorite
-                    ? 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100'
-                    : 'bg-white border hover:bg-gray-50'
+                    ? "bg-red-50 border-red-200 text-red-600 hover:bg-red-100"
+                    : "bg-white border hover:bg-gray-50"
                 }`}
-                title={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                title={
+                  isFavorite
+                    ? "Remover dos favoritos"
+                    : "Adicionar aos favoritos"
+                }
               >
                 <Heart size={18} className={isFavorite ? "fill-red-600" : ""} />
               </button>
@@ -444,8 +533,8 @@ export function APIDetailClient({ initialApi, initialRelated, initialCategory }:
               <div className="relative">
                 <button
                   onClick={() => {
-                    setShowReportMenu(!showReportMenu)
-                    setShowRateMenu(false)
+                    setShowReportMenu(!showReportMenu);
+                    setShowRateMenu(false);
                   }}
                   disabled={loading}
                   className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-sm shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
@@ -466,49 +555,62 @@ export function APIDetailClient({ initialApi, initialRelated, initialCategory }:
                   >
                     <div className="p-4 border-b">
                       <h3 className="font-bold text-gray-900">Denunciar API</h3>
-                      <p className="text-sm text-gray-600 mt-1">Selecione o motivo da denúncia</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Selecione o motivo da denúncia
+                      </p>
                     </div>
-                    
+
                     <div className="max-h-96 overflow-y-auto">
                       {reportOptions.map((option) => (
                         <div
                           key={option.id}
                           className={`p-4 border-b hover:bg-gray-50 cursor-pointer ${
-                            reportReason === option.id ? 'bg-blue-50' : ''
+                            reportReason === option.id ? "bg-blue-50" : ""
                           }`}
                           onClick={() => {
-                            if (option.id === 'other') {
-                              setReportReason('other')
+                            if (option.id === "other") {
+                              setReportReason("other");
                             } else {
-                              const reasonText = option.label.replace(/^[^\s]+\s/, '')
-                              handleReport(reasonText)
+                              const reasonText = option.label.replace(
+                                /^[^\s]+\s/,
+                                "",
+                              );
+                              handleReport(reasonText);
                             }
                           }}
                         >
                           <div className="flex items-start gap-3">
-                            <div className={`w-6 h-6 rounded-full border flex items-center justify-center mt-0.5 ${
-                              reportReason === option.id 
-                                ? 'border-blue-600 bg-blue-600' 
-                                : 'border-gray-300'
-                            }`}>
+                            <div
+                              className={`w-6 h-6 rounded-full border flex items-center justify-center mt-0.5 ${
+                                reportReason === option.id
+                                  ? "border-blue-600 bg-blue-600"
+                                  : "border-gray-300"
+                              }`}
+                            >
                               {reportReason === option.id && (
                                 <div className="w-2 h-2 rounded-full bg-white"></div>
                               )}
                             </div>
                             <div>
-                              <div className="font-semibold text-gray-900">{option.label}</div>
-                              <div className="text-sm text-gray-600 mt-1">{option.description}</div>
+                              <div className="font-semibold text-gray-900">
+                                {option.label}
+                              </div>
+                              <div className="text-sm text-gray-600 mt-1">
+                                {option.description}
+                              </div>
                             </div>
                           </div>
                         </div>
                       ))}
                     </div>
 
-                    {reportReason === 'other' && (
+                    {reportReason === "other" && (
                       <div className="p-4 border-t">
                         <textarea
                           value={reportCustomReason}
-                          onChange={(e) => setReportCustomReason(e.target.value)}
+                          onChange={(e) =>
+                            setReportCustomReason(e.target.value)
+                          }
                           placeholder="Descreva o motivo da denúncia..."
                           className="w-full p-3 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           rows={3}
@@ -516,16 +618,16 @@ export function APIDetailClient({ initialApi, initialRelated, initialCategory }:
                         <div className="flex justify-end gap-2 mt-3">
                           <button
                             onClick={() => {
-                              setShowReportMenu(false)
-                              setReportReason('')
-                              setReportCustomReason('')
+                              setShowReportMenu(false);
+                              setReportReason("");
+                              setReportCustomReason("");
                             }}
                             className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
                           >
                             Cancelar
                           </button>
                           <button
-                            onClick={() => handleReport('Outros')}
+                            onClick={() => handleReport("Outros")}
                             disabled={!reportCustomReason.trim() || loading}
                             className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                           >
@@ -548,17 +650,20 @@ export function APIDetailClient({ initialApi, initialRelated, initialCategory }:
                 <button
                   onClick={() => {
                     if (userHasRated) {
-                      setMessage({type: 'info', text: 'Você já avaliou esta API. Cada usuário pode avaliar apenas uma vez.'})
-                      return
+                      setMessage({
+                        type: "info",
+                        text: "Você já avaliou esta API. Cada usuário pode avaliar apenas uma vez.",
+                      });
+                      return;
                     }
-                    setShowRateMenu(!showRateMenu)
-                    setShowReportMenu(false)
+                    setShowRateMenu(!showRateMenu);
+                    setShowReportMenu(false);
                   }}
                   disabled={loading || userHasRated}
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm shadow-lg ${
                     userHasRated
-                      ? 'bg-green-600 hover:bg-green-700 text-white'
-                      : 'bg-amber-400 hover:bg-amber-500 text-amber-950'
+                      ? "bg-green-600 hover:bg-green-700 text-white"
+                      : "bg-amber-400 hover:bg-amber-500 text-amber-950"
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   {loading ? (
@@ -568,94 +673,92 @@ export function APIDetailClient({ initialApi, initialRelated, initialCategory }:
                   ) : (
                     <Star size={16} className="fill-amber-950" />
                   )}
-                  {userHasRated ? 'Já avaliou' : 'Avaliar'}
+                  {userHasRated ? "Já avaliou" : "Avaliar"}
                 </button>
 
                 {showRateMenu && !userHasRated && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    className="absolute right-0 top-full mt-3 w-96 bg-white border rounded-2xl shadow-2xl z-50 overflow-hidden"
-                  >
-                    <div className="p-4 border-b">
-                      <h3 className="font-bold text-gray-900">Avaliar API</h3>
-                      <p className="text-sm text-gray-600 mt-1">Como foi sua experiência com esta API?</p>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  className="absolute right-0 top-full mt-3 w-96 max-w-[calc(100vw-2rem)] bg-white border rounded-2xl shadow-2xl z-50 overflow-hidden"
+                >
+                  <div className="p-4">
+                    {/* Estrelas */}
+                    <div className="flex justify-center gap-1 mb-4">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          onClick={() => setRating(star)}
+                          className="p-2 hover:scale-110 transition-transform"
+                        >
+                          <Star
+                            size={32}
+                            className={`${
+                              star <= rating
+                                ? "fill-yellow-400 text-yellow-400"
+                                : "fill-gray-300 text-gray-300"
+                            }`}
+                          />
+                        </button>
+                      ))}
                     </div>
-                    
-                    <div className="p-4">
-                      {/* Estrelas */}
-                      <div className="flex justify-center gap-1 mb-4">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <button
-                            key={star}
-                            onClick={() => setRating(star)}
-                            className="p-2 hover:scale-110 transition-transform"
-                          >
-                            <Star
-                              size={32}
-                              className={`${
-                                star <= rating 
-                                  ? 'fill-yellow-400 text-yellow-400' 
-                                  : 'fill-gray-300 text-gray-300'
-                              }`}
-                            />
-                          </button>
+
+                    <div className="text-center mb-4">
+                      <span className="text-lg font-semibold text-gray-900">
+                        {getRatingDescription(rating)}
+                      </span>
+                      <div className="flex items-center justify-center gap-2 mt-1">
+                        {[...Array(rating)].map((_, i) => (
+                          <div
+                            key={i}
+                            className="w-2 h-2 bg-yellow-400 rounded-full"
+                          ></div>
                         ))}
                       </div>
-                      
-                      <div className="text-center mb-4">
-                        <span className="text-lg font-semibold text-gray-900">
-                          {getRatingDescription(rating)}
-                        </span>
-                        <div className="flex items-center justify-center gap-2 mt-1">
-                          {[...Array(rating)].map((_, i) => (
-                            <div key={i} className="w-2 h-2 bg-yellow-400 rounded-full"></div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Comentário */}
-                      <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          <MessageSquare className="inline w-4 h-4 mr-1" />
-                          Comentário (opcional)
-                        </label>
-                        <textarea
-                          value={ratingComment}
-                          onChange={(e) => setRatingComment(e.target.value)}
-                          placeholder="Compartilhe sua experiência..."
-                          className="w-full p-3 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          rows={3}
-                        />
-                      </div>
-
-                      {/* Botões */}
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => {
-                            setShowRateMenu(false)
-                            setRating(0)
-                            setRatingComment('')
-                          }}
-                          className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
-                        >
-                          Cancelar
-                        </button>
-                        <button
-                          onClick={handleRate}
-                          disabled={rating === 0 || loading}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                        >
-                          {loading ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Send className="w-4 h-4" />
-                          )}
-                          Enviar Avaliação
-                        </button>
-                      </div>
                     </div>
-                  </motion.div>
+
+                    {/* Comentário */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <MessageSquare className="inline w-4 h-4 mr-1" />
+                        Comentário (opcional)
+                      </label>
+                      <textarea
+                        value={ratingComment}
+                        onChange={(e) => setRatingComment(e.target.value)}
+                        placeholder="Compartilhe sua experiência..."
+                        className="w-full p-3 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        rows={3}
+                      />
+                    </div>
+
+                    {/* Botões */}
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => {
+                          setShowRateMenu(false);
+                          setRating(0);
+                          setRatingComment("");
+                        }}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={handleRate}
+                        disabled={rating === 0 || loading}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        {loading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Send className="w-4 h-4" />
+                        )}
+                        Enviar Avaliação
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
                 )}
               </div>
 
@@ -668,10 +771,13 @@ export function APIDetailClient({ initialApi, initialRelated, initialCategory }:
                       title: api.name,
                       text: api.description,
                       url: window.location.href,
-                    })
+                    });
                   } else {
-                    navigator.clipboard.writeText(window.location.href)
-                    setMessage({type: 'success', text: 'Link copiado para a área de transferência!'})
+                    navigator.clipboard.writeText(window.location.href);
+                    setMessage({
+                      type: "success",
+                      text: "Link copiado para a área de transferência!",
+                    });
                   }
                 }}
                 className="p-2.5 bg-white border rounded-xl hover:bg-gray-50 shadow-sm"
@@ -690,8 +796,8 @@ export function APIDetailClient({ initialApi, initialRelated, initialCategory }:
                   key={i}
                   className={`w-5 h-5 ${
                     i <= starCount
-                      ? 'fill-yellow-400 text-yellow-400'
-                      : 'fill-gray-300 text-gray-300'
+                      ? "fill-yellow-400 text-yellow-400"
+                      : "fill-gray-300 text-gray-300"
                   }`}
                 />
               ))}
@@ -736,7 +842,9 @@ export function APIDetailClient({ initialApi, initialRelated, initialCategory }:
         >
           <div className="flex items-center justify-center py-8">
             <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-            <span className="ml-2 text-gray-600">Carregando estatísticas...</span>
+            <span className="ml-2 text-gray-600">
+              Carregando estatísticas...
+            </span>
           </div>
         </motion.div>
       ) : ratingStats && ratingStats.total > 0 ? (
@@ -756,8 +864,8 @@ export function APIDetailClient({ initialApi, initialRelated, initialCategory }:
                       size={24}
                       className={`${
                         i <= Math.round(ratingStats.average)
-                          ? 'fill-yellow-400 text-yellow-400'
-                          : 'fill-gray-300 text-gray-300'
+                          ? "fill-yellow-400 text-yellow-400"
+                          : "fill-gray-300 text-gray-300"
                       }`}
                     />
                   ))}
@@ -780,16 +888,20 @@ export function APIDetailClient({ initialApi, initialRelated, initialCategory }:
 
             {/* Distribuição */}
             <div className="lg:w-2/3">
-              <h3 className="font-semibold text-gray-900 mb-4">Distribuição de avaliações</h3>
+              <h3 className="font-semibold text-gray-900 mb-4">
+                Distribuição de avaliações
+              </h3>
               <div className="space-y-3">
                 {ratingStats.distribution.map((item) => (
                   <div key={item.stars} className="flex items-center gap-3">
                     <div className="flex items-center gap-1 w-20">
-                      <span className="text-sm text-gray-700">{item.stars} estrelas</span>
+                      <span className="text-sm text-gray-700">
+                        {item.stars} estrelas
+                      </span>
                     </div>
                     <div className="flex-1">
                       <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                        <div 
+                        <div
                           className="h-full bg-yellow-400 rounded-full"
                           style={{ width: `${item.percentage}%` }}
                         />
@@ -861,13 +973,19 @@ export function APIDetailClient({ initialApi, initialRelated, initialCategory }:
           <div className="card">
             <h2 className="text-xl font-semibold mb-3">Endpoint</h2>
             <div className="flex gap-2">
-              <span className={`px-3 py-1 rounded font-medium ${
-                api.method === 'GET' ? 'bg-green-100 text-green-800' :
-                api.method === 'POST' ? 'bg-blue-100 text-blue-800' :
-                api.method === 'PUT' ? 'bg-yellow-100 text-yellow-800' :
-                api.method === 'DELETE' ? 'bg-red-100 text-red-800' :
-                'bg-gray-100 text-gray-800'
-              }`}>
+              <span
+                className={`px-3 py-1 rounded font-medium ${
+                  api.method === "GET"
+                    ? "bg-green-100 text-green-800"
+                    : api.method === "POST"
+                      ? "bg-blue-100 text-blue-800"
+                      : api.method === "PUT"
+                        ? "bg-yellow-100 text-yellow-800"
+                        : api.method === "DELETE"
+                          ? "bg-red-100 text-red-800"
+                          : "bg-gray-100 text-gray-800"
+                }`}
+              >
                 {api.method}
               </span>
               <code className="flex-1 bg-gray-100 p-3 rounded-lg text-sm overflow-x-auto">
@@ -911,34 +1029,48 @@ export function APIDetailClient({ initialApi, initialRelated, initialCategory }:
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-gray-600">Categoria</span>
-                <span className="font-medium text-gray-900">{initialCategory}</span>
+                <span className="font-medium text-gray-900">
+                  {initialCategory}
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-gray-600">Método</span>
-                <span className={`px-2 py-1 text-xs rounded font-medium ${
-                  api.method === 'GET' ? 'bg-green-100 text-green-800' :
-                  api.method === 'POST' ? 'bg-blue-100 text-blue-800' :
-                  api.method === 'PUT' ? 'bg-yellow-100 text-yellow-800' :
-                  api.method === 'DELETE' ? 'bg-red-100 text-red-800' :
-                  'bg-gray-100 text-gray-800'
-                }`}>
+                <span
+                  className={`px-2 py-1 text-xs rounded font-medium ${
+                    api.method === "GET"
+                      ? "bg-green-100 text-green-800"
+                      : api.method === "POST"
+                        ? "bg-blue-100 text-blue-800"
+                        : api.method === "PUT"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : api.method === "DELETE"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-gray-100 text-gray-800"
+                  }`}
+                >
                   {api.method}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-gray-600">Autenticação</span>
-                <span className="font-medium text-gray-900">{api.authentication_type}</span>
+                <span className="font-medium text-gray-900">
+                  {api.authentication_type}
+                </span>
               </div>
               {ratingStats && ratingStats.total > 0 && (
                 <>
                   <div className="border-t pt-3 mt-3">
                     <div className="flex items-center justify-between">
                       <span className="text-gray-600">Avaliações</span>
-                      <span className="font-medium text-gray-900">{ratingStats.total}</span>
+                      <span className="font-medium text-gray-900">
+                        {ratingStats.total}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-gray-600">Média</span>
-                      <span className="font-medium text-gray-900">{ratingStats.average.toFixed(1)}/5</span>
+                      <span className="font-medium text-gray-900">
+                        {ratingStats.average.toFixed(1)}/5
+                      </span>
                     </div>
                   </div>
                 </>
@@ -951,9 +1083,9 @@ export function APIDetailClient({ initialApi, initialRelated, initialCategory }:
               <h3 className="font-semibold mb-3 text-lg">APIs Relacionadas</h3>
               <div className="space-y-3">
                 {relatedApis.map((r) => {
-                  const relatedRating = r.rating || 0
-                  const relatedStarCount = getRatingStars(r.rating)
-                  
+                  const relatedRating = r.rating || 0;
+                  const relatedStarCount = getRatingStars(r.rating);
+
                   return (
                     <Link
                       key={r.id}
@@ -969,13 +1101,18 @@ export function APIDetailClient({ initialApi, initialRelated, initialCategory }:
                       <div className="flex items-center gap-2 mt-2">
                         {relatedRating > 0 && (
                           <>
-                            <Star size={14} className="fill-yellow-400 text-yellow-400" />
-                            <span className="text-sm text-gray-700">{formatRating(r.rating)}</span>
+                            <Star
+                              size={14}
+                              className="fill-yellow-400 text-yellow-400"
+                            />
+                            <span className="text-sm text-gray-700">
+                              {formatRating(r.rating)}
+                            </span>
                           </>
                         )}
                       </div>
                     </Link>
-                  )
+                  );
                 })}
               </div>
             </div>
@@ -983,5 +1120,5 @@ export function APIDetailClient({ initialApi, initialRelated, initialCategory }:
         </div>
       </div>
     </div>
-  )
+  );
 }

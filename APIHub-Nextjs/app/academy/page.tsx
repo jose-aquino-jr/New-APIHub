@@ -5,8 +5,12 @@ import { motion } from 'framer-motion'
 import { Clock, Zap, BookOpen, Sparkles, GraduationCap } from 'lucide-react'
 import { useAuth } from '@/components/AuthProvider'
 import confetti from 'canvas-confetti'
+import { useRouter } from 'next/router'
 
 export default function AcademyHome() {
+
+  const router = useRouter();
+  const {user} = useAuth();
 
   useEffect(() => {
     const duration = 7 * 1000; 
@@ -153,13 +157,13 @@ export default function AcademyHome() {
           transition={{ delay: 0.6 }}
           className="mt-10"
         >
-          <motion.a
+          <motion.button
             whileHover={{ x: -5 }}
-            href="/academy/courses"
+            onClick = {() => router.push('/academy/courses')}
             className="inline-flex items-center gap-2 text-gray-700 hover:text-blue-600 font-medium px-6 py-3 rounded-xl border border-gray-300 hover:border-blue-400 transition-colors shadow-sm bg-white"
           >
             Venha conhecer nossos cursos →
-          </motion.a>
+          </motion.button>
         </motion.div>
       </motion.div>
     </div>

@@ -70,7 +70,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
             <div className="flex-1">
               <div className="flex gap-2 mb-6">
                 <span className="px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-blue-50 text-blue-600 border border-blue-100">
-                  {course.nivel || 'Iniciante'} [cite: 245]
+                  {course.nivel || 'Iniciante'}
                 </span>
                 <span className="px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-gray-50 text-gray-500 border border-gray-100 flex items-center gap-1">
                   <Clock size={12} /> {course.duracao_estimada || 0}h estimadas

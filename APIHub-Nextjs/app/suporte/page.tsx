@@ -58,11 +58,11 @@ export default function Suporte() {
                 <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
                   <Github className="w-6 h-6 text-gray-600" />
                 </div>
-                <div>
+                <Link href="https://github.com/jose-aquino-jr/apihub-frontend" passHref>
                   <h3 className="font-semibold text-gray-800">GitHub</h3>
                   <p className="text-gray-600">Reportar issues</p>
                   <p className="text-sm text-gray-500">Problemas técnicos</p>
-                </div>
+                </Link>
               </div>
             </div>
           </motion.div>
