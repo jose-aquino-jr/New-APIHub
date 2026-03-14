@@ -4,25 +4,28 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Trophy, Home, BookOpen, Mail, ArrowRight, CheckCircle, Check } from 'lucide-react';
 
+const API_BASE = 'https://apihub-br.duckdns.org';
+
 export default function ConclusaoPage({ params }: { params: any }) {
   const [course, setCourse] = useState<any>(null);
   const [copied, setCopied] = useState(false);
   const [slug, setSlug] = useState<string>("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadData() {
-      // No Next.js 15, params deve ser aguardado
-      const resolvedParams = await params;
-      setSlug(resolvedParams.slug);
-      
       try {
-        // Busca o curso pelo slug para pegar o ID (Pág 19 da doc)
-        const resSlug = await fetch(`https://apihub-br.duckdns.org/cursos/slug/${resolvedParams.slug}`);
+        // 1. Resolver params primeiro
+        const resolvedParams = await params;
+        setSlug(resolvedParams.slug);
+        
+        // 2. Buscar curso por slug (CORRIGIDO)
+        const resSlug = await fetch(`${API_BASE}/cursos/by-slug/${resolvedParams.slug}`);
         const slugData = await resSlug.json();
         
         if (slugData.success && slugData.data?.id) {
-          // Busca os detalhes completos incluindo módulos (Pág 20 da doc)
-          const resFull = await fetch(`https://apihub-br.duckdns.org/cursos/${slugData.data.id}/details`);
+          // 3. Buscar curso completo (CORRIGIDO)
+          const resFull = await fetch(`${API_BASE}/cursos/completo/${slugData.data.id}`);
           const fullData = await resFull.json();
           
           if (fullData.success) {
@@ -31,6 +34,8 @@ export default function ConclusaoPage({ params }: { params: any }) {
         }
       } catch (e) {
         console.error("Erro ao carregar dados de conclusão", e);
+      } finally {
+        setLoading(false);
       }
     }
     loadData();
@@ -50,12 +55,21 @@ export default function ConclusaoPage({ params }: { params: any }) {
     return acc + (Array.isArray(blocos) ? blocos.length : 0);
   }, 0);
 
-  if (!course) return (
+  if (loading) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-white">
       <div className="w-16 h-16 border-4 border-blue-50 border-t-blue-600 rounded-full animate-spin mb-4" />
       <p className="text-xs font-black text-gray-400 uppercase tracking-widest animate-pulse">
         Gerando sua conquista...
       </p>
+    </div>
+  );
+
+  if (!course) return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-white">
+      <p className="text-red-500 font-black">Curso não encontrado</p>
+      <Link href="/academy" className="mt-4 text-blue-600 underline">
+        Voltar
+      </Link>
     </div>
   );
 
@@ -91,7 +105,7 @@ export default function ConclusaoPage({ params }: { params: any }) {
             <span className="text-blue-600">Cumprida!</span>
           </h1>
           <p className="text-gray-500 text-xl max-w-md mx-auto leading-relaxed font-medium">
-            Você finalizou o treinamento <strong>{course.titulo || course.name}</strong> com sucesso.
+            Você finalizou o treinamento <strong>{course.titulo}</strong> com sucesso.
           </p>
         </div>
 
