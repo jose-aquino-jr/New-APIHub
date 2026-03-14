@@ -1,10 +1,16 @@
-// types/index.ts
+// types/index.ts (seus tipos existentes + adições)
 export interface User {
   id: string
   name: string
   email: string
   created_at: string
   updated_at: string
+  // Campos opcionais que podem vir do OAuth
+  avatar_url?: string
+  provider?: string
+  bio?: string
+  preferredLanguages?: string[]
+  accept_terms?: boolean
 }
 
 export interface API {
@@ -47,4 +53,62 @@ export interface PasswordReset {
   token: string
   expires_at: string
   created_at: string
+}
+
+// Novos tipos para autenticação
+export interface AuthSession {
+  access_token: string
+  refresh_token?: string
+  expires_at?: string
+  user: User
+}
+
+export interface AuthResponse {
+  success: boolean
+  data?: {
+    user: User
+    session: AuthSession
+  }
+  message?: string
+}
+
+export interface Course {
+  id: string
+  title: string
+  description: string
+  slug: string
+  thumbnail_url?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface Module {
+  id: string
+  course_id: string
+  title: string
+  description?: string
+  order: number
+  created_at: string
+}
+
+export interface Lesson {
+  id: string
+  module_id: string
+  title: string
+  content?: string
+  video_url?: string
+  duration?: number
+  order: number
+  created_at: string
+}
+
+export interface CourseProgress {
+  id: string
+  user_id: string
+  course_id: string
+  lesson_id: string
+  progress_percentual: number
+  completed: boolean
+  created_at: string
+  updated_at: string
 }
