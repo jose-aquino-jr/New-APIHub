@@ -16,7 +16,7 @@ async function getFullCourseData(slug: string) {
     const slugData = await resSlug.json();
     if (!slugData.success || !slugData.data) return null;
 
-    const resFull = await fetch(`${API_BASE}/cursos/${slugData.data.id}/details`, { next: { revalidate: 30 } });
+    const resFull = await fetch(`${API_BASE}/cursos/bloco/${slugData.data.id}`, { next: { revalidate: 30 } });
     const fullData = await resFull.json();
     return fullData.success ? fullData.data : null;
   } catch (error) { return null; }
