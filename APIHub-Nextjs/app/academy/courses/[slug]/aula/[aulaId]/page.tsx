@@ -12,14 +12,19 @@ const API_BASE = 'https://apihub-br.duckdns.org';
 
 async function getFullCourseData(slug: string) {
   try {
-    const resSlug = await fetch(`${API_BASE}/cursos/slug/${slug}`, { next: { revalidate: 30 } });
+    // ✅ CORRIGIDO: Rota para buscar curso por slug
+    const resSlug = await fetch(`${API_BASE}/cursos/by-slug/${slug}`, { next: { revalidate: 30 } });
     const slugData = await resSlug.json();
     if (!slugData.success || !slugData.data) return null;
 
-    const resFull = await fetch(`${API_BASE}/cursos/bloco/${slugData.data.id}`, { next: { revalidate: 30 } });
+    // ✅ CORRIGIDO: Rota para buscar curso completo (com módulos e blocos)
+    const resFull = await fetch(`${API_BASE}/cursos/completo/${slugData.data.id}`, { next: { revalidate: 30 } });
     const fullData = await resFull.json();
     return fullData.success ? fullData.data : null;
-  } catch (error) { return null; }
+  } catch (error) { 
+    console.error('Erro ao buscar curso:', error);
+    return null; 
+  }
 }
 
 async function getUserProgress(cursoId: string) {
@@ -27,16 +32,20 @@ async function getUserProgress(cursoId: string) {
     const cookieStore = await cookies();
     const token = cookieStore.get('token')?.value;
     
-    // Se não houver token, não tenta buscar progresso para não dar erro 401
+    // Se não houver token, não tenta buscar progresso
     if (!token) return null;
 
-    const res = await fetch(`${API_BASE}/progresso/${cursoId}`, { 
+    // ✅ CORRIGIDO: Rota para buscar progresso do curso
+    const res = await fetch(`${API_BASE}/curso-progresso/${cursoId}`, { 
       headers: { 'Authorization': `Bearer ${token}` },
       cache: 'no-store' 
     });
     const data = await res.json();
     return data.success ? data.data : null;
-  } catch (error) { return null; }
+  } catch (error) { 
+    console.error('Erro ao buscar progresso:', error);
+    return null; 
+  }
 }
 
 export default async function AulaPage({ params }: { params: Promise<{ slug: string, aulaId: string }> }) {
