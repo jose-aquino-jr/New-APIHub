@@ -28,7 +28,7 @@ export default function BotaoConcluir({ cursoId, moduloId, blocoId, proximaAulaU
 
     try {
       // Endpoint correto: POST /curso-progresso-detalhe (seção 7.4)
-      const res = await fetch('https://apihub-br.duckdns.org/curso-progresso-detalhe', {
+      const res = await fetch('https://apihub-br.duckdns.org/curso-progresso/detalhe', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
