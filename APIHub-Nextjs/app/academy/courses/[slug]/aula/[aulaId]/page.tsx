@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import { cookies } from 'next/headers'; 
 import { ArrowLeft, ChevronLeft, ChevronRight, FileText, PlayCircle } from 'lucide-react';
 import BotaoConcluir from '@/components/BotaoConcluir';
+import GerenciadorProgresso from '@/components/Progresso';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,12 +13,12 @@ const API_BASE = 'https://apihub-br.duckdns.org';
 
 async function getFullCourseData(slug: string) {
   try {
-    // ✅ CORRIGIDO: Rota para buscar curso por slug
+    // Busca o curso pelo slug — GET /cursos/by-slug/{slug} (seção 6.2)
     const resSlug = await fetch(`${API_BASE}/cursos/by-slug/${slug}`, { next: { revalidate: 30 } });
     const slugData = await resSlug.json();
     if (!slugData.success || !slugData.data) return null;
 
-    // ✅ CORRIGIDO: Rota para buscar curso completo (com módulos e blocos)
+    // FIX: curso-completo → curso/completo (seção 6.5)
     const resFull = await fetch(`${API_BASE}/cursos/completo/${slugData.data.id}`, { next: { revalidate: 30 } });
     const fullData = await resFull.json();
     return fullData.success ? fullData.data : null;
@@ -32,10 +33,9 @@ async function getUserProgress(cursoId: string) {
     const cookieStore = await cookies();
     const token = cookieStore.get('token')?.value;
     
-    // Se não houver token, não tenta buscar progresso
     if (!token) return null;
 
-    // ✅ CORRIGIDO: Rota para buscar progresso do curso
+    // FIX: curso-progresso → curso/progresso (seção 7.2)
     const res = await fetch(`${API_BASE}/curso-progresso/${cursoId}`, { 
       headers: { 'Authorization': `Bearer ${token}` },
       cache: 'no-store' 
@@ -58,7 +58,7 @@ export default async function AulaPage({ params }: { params: Promise<{ slug: str
 
   const progresso = await getUserProgress(course.id);
 
-  // 2. Organizar Linha do Tempo (Mapeamento Flexível para blocos/curso_blocos)
+  // 2. Organizar Linha do Tempo
   const modulos = course.modulos || course.curso_modulos || [];
   const linhaDoTempo = modulos
     .sort((a: any, b: any) => (Number(a.ordem) || 0) - (Number(b.ordem) || 0))
@@ -85,7 +85,6 @@ export default async function AulaPage({ params }: { params: Promise<{ slug: str
   const jaConcluida = aulasConcluidasIds.includes(String(aulaAtual.id));
   const podeAcessarAnterior = indiceGlobal === 0 || aulasConcluidasIds.includes(String(linhaDoTempo[indiceGlobal - 1]?.id));
 
-  // Bloqueia se: Não for Dev E não tiver acesso E não estiver concluída
   if (!isDev && !podeAcessarAnterior && !jaConcluida) {
     redirect(`/academy/courses/${slug}?error=aula-bloqueada`);
   }
@@ -98,6 +97,15 @@ export default async function AulaPage({ params }: { params: Promise<{ slug: str
       <div className="fixed top-0 left-0 w-full h-1 bg-gray-100 z-[100]">
         <div className="h-full bg-blue-600 transition-all duration-700" style={{ width: `${progressoPorcentagem}%` }} />
       </div>
+
+      {/* GerenciadorProgresso: registra visita à aula no servidor (seção 7.3) */}
+      <GerenciadorProgresso
+        slug={slug}
+        cursoId={course.id}
+        aulaId={aulaAtual.id}
+        totalAulas={linhaDoTempo.length}
+        indiceAtual={indiceGlobal}
+      />
 
       <nav className="border-b bg-white/90 backdrop-blur-md px-6 py-4 sticky top-1 z-50 flex items-center justify-between">
         <div className="flex items-center gap-4">

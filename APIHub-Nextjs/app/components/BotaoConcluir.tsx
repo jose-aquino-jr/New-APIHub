@@ -4,9 +4,9 @@ import { useState } from 'react';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 
 interface Props {
-  cursoId: string;      // ID (UUID) do curso
-  moduloId: string;     // ID (UUID) do módulo
-  blocoId: string;      // ID (UUID) do bloco/aula
+  cursoId: string;
+  moduloId: string;
+  blocoId: string;
   proximaAulaUrl: string;
 }
 
@@ -17,9 +17,8 @@ export default function BotaoConcluir({ cursoId, moduloId, blocoId, proximaAulaU
     console.log('🚀 Iniciando conclusão da aula:', { cursoId, moduloId, blocoId });
     setLoading(true);
 
-    // Tenta pegar token do localStorage OU dos cookies
-    const token = localStorage.getItem('authToken') || 
-                  document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
+    const token = localStorage.getItem('authToken') ||
+      document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
 
     if (!token) {
       alert('Sessão não encontrada. Por favor, faça login novamente.');
@@ -28,12 +27,12 @@ export default function BotaoConcluir({ cursoId, moduloId, blocoId, proximaAulaU
     }
 
     try {
-      // ✅ ROTA CORRIGIDA: /curso-progresso/detalhe (COM BARRA)
+      // Endpoint correto: POST /curso-progresso-detalhe (seção 7.4)
       const res = await fetch('https://apihub-br.duckdns.org/curso-progresso/detalhe', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` 
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           curso_id: cursoId,
@@ -46,12 +45,12 @@ export default function BotaoConcluir({ cursoId, moduloId, blocoId, proximaAulaU
       const data = await res.json();
 
       if (res.ok && data.success) {
-        console.log('✅ Progresso salvo com sucesso no banco!');
+        console.log('✅ Progresso salvo com sucesso!');
 
-        // Atualiza o progresso local
+        // Atualiza localStorage
         const progressoLocal = JSON.parse(localStorage.getItem('apihub_progresso') || '{}');
         const urlParts = window.location.pathname.split('/');
-        const slug = urlParts[3]; // Pega o slug do curso da URL atual
+        const slug = urlParts[3];
         const proximaAulaId = proximaAulaUrl.split('/').pop();
 
         if (slug && proximaAulaId) {
@@ -59,24 +58,23 @@ export default function BotaoConcluir({ cursoId, moduloId, blocoId, proximaAulaU
           localStorage.setItem('apihub_progresso', JSON.stringify(progressoLocal));
         }
 
-        // Redirecionamento
         console.log('➔ Redirecionando para:', proximaAulaUrl);
         window.location.href = proximaAulaUrl;
 
       } else {
         console.error('❌ Erro retornado pela API:', data);
         alert(`Erro: ${data.message || 'Não foi possível salvar o progresso.'}`);
+        setLoading(false);
       }
     } catch (error) {
       console.error('❌ Erro na comunicação com o servidor:', error);
       alert('Erro de conexão. Verifique se o servidor está online.');
-    } finally {
-      // Nota: O loading permanece true até a página recarregar
+      setLoading(false);
     }
   };
 
   return (
-    <button 
+    <button
       onClick={handleConcluir}
       disabled={loading}
       className="group flex items-center gap-4 bg-blue-600 text-white px-12 py-5 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-700 transition-all disabled:opacity-70 active:scale-95 shadow-xl shadow-blue-100"

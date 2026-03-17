@@ -1,7 +1,5 @@
 'use client';
 
-console.log('ConcluirWrapper carregado');
-
 import BotaoConcluir from './BotaoConcluir';
 
 interface Props {
