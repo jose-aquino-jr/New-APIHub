@@ -4,49 +4,50 @@ import { useEffect } from 'react';
 
 interface Props {
   slug: string;
-  cursoId: string; // Adicionado para bater com a Doc 7.2
+  cursoId: string;
   aulaId: string;
+  totalAulas: number;
+  indiceAtual: number;
 }
 
-export default function GerenciadorProgresso({ slug, cursoId, aulaId }: Props) {
+export default function GerenciadorProgresso({ slug, cursoId, aulaId, totalAulas, indiceAtual }: Props) {
   useEffect(() => {
-    // 1. Atualização Instantânea no LocalStorage (Offline-first)
+    // 1. Atualização instantânea no localStorage (offline-first)
     const atualizarLocal = () => {
-      const progressoLocal = localStorage.getItem('apihub_progresso');
-      const dados = progressoLocal ? JSON.parse(progressoLocal) : {};
+      const dados = JSON.parse(localStorage.getItem('apihub_progresso') || '{}');
       dados[slug] = aulaId;
       localStorage.setItem('apihub_progresso', JSON.stringify(dados));
     };
 
-    // 2. Sincronização com o Servidor (Opcional, mas recomendado pela Doc)
+    // 2. Sincronização com o servidor via POST /curso-progresso (seção 7.3)
     const sincronizarComServidor = async () => {
-      const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+      const token = localStorage.getItem('authToken');
       if (!token || !cursoId) return;
 
+      const progresso_percentual = Math.round(((indiceAtual + 1) / totalAulas) * 100);
+
       try {
-        // Endpoint sugerido para "Último Acesso" (Ver pág 27 da Doc)
-        await fetch('https://apihub-br.duckdns.org/curso-progresso/checkpoint', {
-          method: 'PATCH',
+        await fetch('https://apihub-br.duckdns.org/curso-progresso', {
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify({
             curso_id: cursoId,
-            ultima_aula_id: aulaId
+            status: progresso_percentual >= 100 ? 'concluido' : 'em_andamento',
+            progresso_percentual
           })
         });
       } catch (e) {
-        console.error("Erro silencioso ao sincronizar checkpoint:", e);
+        console.error('Erro ao sincronizar progresso:', e);
       }
     };
 
     atualizarLocal();
-    
-    // Opcional: Só sincroniza com servidor se o token existir
     sincronizarComServidor();
 
-  }, [slug, aulaId, cursoId]);
+  }, [slug, aulaId, cursoId, totalAulas, indiceAtual]);
 
   return null;
 }

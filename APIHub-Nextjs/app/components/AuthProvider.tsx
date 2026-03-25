@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 // components/AuthProvider.tsx - VERSÃO CORRIGIDA PARA AMBOS (Google e GitHub)
+=======
+// components/AuthProvider.tsx
+>>>>>>> 177293388e95409eb7999051c37912bd39abae32
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
@@ -53,6 +57,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 // Configuração da API base
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://apihub-br.duckdns.org'
 
+<<<<<<< HEAD
 // Função auxiliar para decodificar JWT
 const decodeJWT = (token: string) => {
   try {
@@ -66,6 +71,28 @@ const decodeJWT = (token: string) => {
     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
     
     // Adicionar padding se necessário
+=======
+// Salva o token no localStorage E num cookie para que o middleware
+// (que roda no servidor) consiga lê-lo. O cookie expira em 1 hora,
+// igual ao tempo de expiração do token da API.
+const saveToken = (token: string) => {
+  localStorage.setItem('authToken', token)
+  document.cookie = `authToken=${token}; path=/; max-age=3600; SameSite=Lax`
+}
+
+// Remove o token de ambos os lugares simultaneamente
+const clearToken = () => {
+  localStorage.removeItem('authToken')
+  document.cookie = 'authToken=; path=/; max-age=0'
+}
+
+const decodeJWT = (token: string) => {
+  try {
+    if (!token || token.split('.').length !== 3) return null
+    
+    const base64Url = token.split('.')[1]
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+>>>>>>> 177293388e95409eb7999051c37912bd39abae32
     const pad = base64.length % 4
     const paddedBase64 = pad ? base64 + '='.repeat(4 - pad) : base64
     
@@ -78,7 +105,11 @@ const decodeJWT = (token: string) => {
     
     return JSON.parse(jsonPayload)
   } catch (error) {
+<<<<<<< HEAD
     console.warn('Não foi possível decodificar como JWT (pode ser provider_token do GitHub):', error)
+=======
+    console.warn('Não foi possível decodificar como JWT:', error)
+>>>>>>> 177293388e95409eb7999051c37912bd39abae32
     return null
   }
 }
@@ -252,9 +283,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Verificar autenticação existente ao montar
   useEffect(() => {
-    checkAuth()
+    const checkHashForTokens = () => {
+      const hash = window.location.hash
+      console.log('🔍 Hash da URL:', hash.substring(0, 100) + (hash.length > 100 ? '...' : ''))
+      if (hash && (hash.includes('access_token') || hash.includes('provider_token'))) {
+        console.log('🔐 Token encontrado no hash da URL')
+        processTokensFromHash(hash)
+      }
+    }
+    
+    checkHashForTokens()
+    const handleLoad = () => setTimeout(checkHashForTokens, 100)
+    window.addEventListener('load', handleLoad)
+    return () => window.removeEventListener('load', handleLoad)
   }, [])
 
+<<<<<<< HEAD
   // Sincronizar favorites com favoriteObjects
   useEffect(() => {
     const ids = favoriteObjects.map(fav => fav.api_id)
@@ -275,12 +319,132 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userData = JSON.parse(savedUser)
         
         // Verificar se o token ainda é válido
+=======
+  const processTokensFromHash = (hash: string) => {
+    try {
+      console.log('🔄 Processando tokens do hash...')
+      
+      const hashWithoutHash = hash.substring(1)
+      const hashParams = new URLSearchParams(hashWithoutHash)
+      
+      const access_token = hashParams.get('access_token')
+      const provider_token = hashParams.get('provider_token')
+      const refresh_token = hashParams.get('refresh_token')
+      
+      const tokenToUse = access_token || provider_token
+      if (!tokenToUse) {
+        console.error('❌ Nenhum token válido encontrado no hash')
+        return
+      }
+      
+      const payload = decodeJWT(tokenToUse)
+      let userData: User
+      
+      if (payload) {
+        userData = {
+          id: payload.sub,
+          email: payload.email,
+          name: payload.user_metadata?.name || 
+                payload.user_metadata?.full_name || 
+                payload.email?.split('@')[0] || 
+                'Usuário',
+          avatar_url: payload.user_metadata?.avatar_url || payload.user_metadata?.picture,
+          provider: payload.app_metadata?.provider || 'google',
+          accept_terms: false,
+          bio: '',
+          preferredLanguages: []
+        }
+      } else {
+        userData = {
+          id: `github_${Date.now()}`,
+          email: `github_user_${Date.now()}@example.com`,
+          name: 'Usuário GitHub',
+          avatar_url: '',
+          provider: 'github',
+          accept_terms: false,
+          bio: '',
+          preferredLanguages: []
+        }
+      }
+      
+      // Salva no localStorage E no cookie via saveToken
+      saveToken(tokenToUse)
+      if (refresh_token) localStorage.setItem('refreshToken', refresh_token)
+      localStorage.setItem('apihub_user', JSON.stringify(userData))
+      localStorage.setItem('oauth_provider', userData.provider || 'unknown')
+      
+      setToken(tokenToUse)
+      setUser(userData)
+      
+      setTimeout(async () => {
+        try { await loadFavoritesFromBackend(userData.id) } 
+        catch (error) { console.warn('Não foi possível carregar favoritos:', error) }
+      }, 500)
+      
+      window.history.replaceState(null, '', window.location.pathname)
+      
+      const redirectTo = localStorage.getItem('redirectAfterLogin') || '/'
+      localStorage.removeItem('redirectAfterLogin')
+      router.replace(redirectTo)
+      
+    } catch (error: any) {
+      console.error('🔥 Erro ao processar tokens do hash:', error)
+      window.history.replaceState(null, '', '/login')
+      router.replace('/login?error=hash_processing_error')
+    }
+  }
+
+  useEffect(() => { checkAuth() }, [])
+
+  useEffect(() => {
+    const ids = favoriteObjects.map(fav => fav.api_id)
+    setFavorites(ids)
+    if (user?.id) {
+      localStorage.setItem(`favorites_objects_${user.id}`, JSON.stringify(favoriteObjects))
+      localStorage.setItem(`favorites_${user.id}`, JSON.stringify(ids))
+    }
+  }, [favoriteObjects, user])
+
+  const checkAuth = async () => {
+    // ─── BYPASS DE DESENVOLVIMENTO ──────────────────────────────────────────
+    // Injeta um usuário falso em modo de desenvolvimento para evitar ter que
+    // fazer login a cada sessão. Nunca executa em produção pois
+    // process.env.NODE_ENV é 'production' no build do Next.js.
+    if (process.env.NODE_ENV === 'development') {
+      const devUser: User = {
+        id: '1c9dd341-f1d8-400f-b4be-83a5562d7947',
+        email: 'dev@apihub.com',
+        name: 'Dev User',
+        bio: '',
+        preferredLanguages: [],
+        avatar_url: '',
+        provider: 'dev',
+        accept_terms: true,
+      }
+      saveToken(process.env.NEXT_PUBLIC_DEV_TOKEN || 'dev-fake-token')
+      localStorage.setItem('apihub_user', JSON.stringify(devUser))
+      setToken(process.env.NEXT_PUBLIC_DEV_TOKEN || 'dev-fake-token')
+      setUser(devUser)
+      setLoading(false)
+      console.log('[DEV] Bypass de autenticação ativo')
+      return
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
+    try {
+      const savedUser = localStorage.getItem('apihub_user')
+      const savedToken = localStorage.getItem('authToken')
+      
+      if (savedUser && savedToken) {
+        const userData = JSON.parse(savedUser)
+>>>>>>> 177293388e95409eb7999051c37912bd39abae32
         const isValid = await checkSession()
         
         if (isValid) {
           setUser(userData)
           setToken(savedToken)
           
+<<<<<<< HEAD
           // Carregar favoritos do localStorage (fallback rápido)
           const savedFavorites = localStorage.getItem(`favorites_${userData.id}`)
           if (savedFavorites) {
@@ -310,6 +474,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             } catch (error) {
               console.warn('Não foi possível carregar favoritos do backend:', error)
             }
+=======
+          const savedFavorites = localStorage.getItem(`favorites_${userData.id}`)
+          if (savedFavorites) {
+            try { setFavorites(JSON.parse(savedFavorites)) }
+            catch (e) { console.warn('Erro ao parsear favoritos:', e) }
+          }
+          
+          const savedFavoriteObjects = localStorage.getItem(`favorites_objects_${userData.id}`)
+          if (savedFavoriteObjects) {
+            try { setFavoriteObjects(JSON.parse(savedFavoriteObjects)) }
+            catch (e) { console.warn('Erro ao parsear favorite objects:', e) }
+          }
+          
+          setTimeout(async () => {
+            try { await loadFavoritesFromBackend(userData.id) }
+            catch (error) { console.warn('Não foi possível carregar favoritos do backend:', error) }
+>>>>>>> 177293388e95409eb7999051c37912bd39abae32
           }, 1000)
           
           console.log('✅ Autenticação restaurada')
@@ -331,12 +512,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setFavoriteObjects([])
     setFavorites([])
     localStorage.removeItem('apihub_user')
+<<<<<<< HEAD
     localStorage.removeItem('authToken')
+=======
+>>>>>>> 177293388e95409eb7999051c37912bd39abae32
     localStorage.removeItem('refreshToken')
     localStorage.removeItem('oauth_provider')
     localStorage.removeItem('last_oauth_error')
     
+<<<<<<< HEAD
     // Limpar favoritos específicos do usuário
+=======
+    // clearToken remove de ambos: localStorage e cookie
+    clearToken()
+    
+>>>>>>> 177293388e95409eb7999051c37912bd39abae32
     if (user?.id) {
       localStorage.removeItem(`favorites_${user.id}`)
       localStorage.removeItem(`favorites_objects_${user.id}`)
@@ -348,7 +538,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const token = localStorage.getItem('authToken')
       if (!token) return false
 
+<<<<<<< HEAD
       console.log('🔍 Verificando sessão...')
+=======
+>>>>>>> 177293388e95409eb7999051c37912bd39abae32
       const response = await fetch(`${API_BASE_URL}/auth/session`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -356,6 +549,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
       })
 
+<<<<<<< HEAD
       if (response.status === 401) {
         console.log('❌ Sessão expirada (401)')
         return false
@@ -371,6 +565,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('✅ Sessão válida')
       return true
       
+=======
+      if (response.status === 401) return false
+      const data = await response.json()
+      return response.ok && data.success
+>>>>>>> 177293388e95409eb7999051c37912bd39abae32
     } catch (error) {
       console.error('❌ Erro ao verificar sessão:', error)
       return false
@@ -379,16 +578,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUserData = async () => {
     if (!user) return
+<<<<<<< HEAD
     
+=======
+>>>>>>> 177293388e95409eb7999051c37912bd39abae32
     try {
       const token = localStorage.getItem('authToken')
       if (!token) return
       
       const response = await fetch(`${API_BASE_URL}/auth/session`, {
+<<<<<<< HEAD
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+=======
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+>>>>>>> 177293388e95409eb7999051c37912bd39abae32
       })
       
       if (response.ok) {
@@ -397,7 +603,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const updatedUser = { ...user, ...data.data.user }
           setUser(updatedUser)
           localStorage.setItem('apihub_user', JSON.stringify(updatedUser))
+<<<<<<< HEAD
           console.log('✅ Dados do usuário atualizados')
+=======
+>>>>>>> 177293388e95409eb7999051c37912bd39abae32
         }
       }
     } catch (error) {
@@ -410,6 +619,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('🔐 Tentando login com email...')
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
+<<<<<<< HEAD
         headers: { 
           'Content-Type': 'application/json' 
         },
@@ -421,6 +631,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       const result = await response.json()
       console.log('📨 Resposta do login:', { status: response.status, success: result.success })
+=======
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), senha: password })
+      })
+      
+      const result = await response.json()
+>>>>>>> 177293388e95409eb7999051c37912bd39abae32
       
       if (response.ok && result.success) {
         const userData = {
@@ -436,7 +653,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         const accessToken = result.data?.session?.access_token
         if (accessToken) {
+<<<<<<< HEAD
           localStorage.setItem('authToken', accessToken)
+=======
+          // saveToken salva no localStorage E no cookie
+          saveToken(accessToken)
+>>>>>>> 177293388e95409eb7999051c37912bd39abae32
           setToken(accessToken)
           
           if (result.data?.session?.refresh_token) {
@@ -445,6 +667,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           localStorage.setItem('apihub_user', JSON.stringify(userData))
           setUser(userData)
+<<<<<<< HEAD
           
           await loadFavoritesFromBackend(userData.id)
           
@@ -464,6 +687,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { 
         error: new Error('Erro de conexão com o servidor. Tente novamente.') 
       }
+=======
+          await loadFavoritesFromBackend(userData.id)
+          return { error: null }
+        }
+      }
+      
+      return { error: new Error(result.message || 'Email ou senha incorretos') }
+    } catch (error: any) {
+      return { error: new Error('Erro de conexão com o servidor. Tente novamente.') }
+>>>>>>> 177293388e95409eb7999051c37912bd39abae32
     }
   }
 
@@ -484,6 +717,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       
       const data = await response.json()
+<<<<<<< HEAD
       console.log('📨 Resposta do registro:', { status: response.status, success: data.success })
       
       if (response.ok && data.success) {
@@ -494,23 +728,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const errorMessage = data.message || 'Erro no registro'
       console.error('❌ Erro no registro:', errorMessage)
       
+=======
+      if (response.ok && data.success) return { error: null }
+      
+      const errorMessage = data.message || 'Erro no registro'
+>>>>>>> 177293388e95409eb7999051c37912bd39abae32
       if (errorMessage.includes('já existe') || errorMessage.includes('already')) {
         return { error: new Error('Este email já está cadastrado') }
       }
-      
       return { error: new Error(errorMessage) }
       
     } catch (error: any) {
+<<<<<<< HEAD
       console.error('❌ Erro de conexão no registro:', error)
       return { 
         error: new Error('Erro de conexão com o servidor. Verifique sua internet.') 
       }
+=======
+      return { error: new Error('Erro de conexão com o servidor. Verifique sua internet.') }
+>>>>>>> 177293388e95409eb7999051c37912bd39abae32
     }
   }
 
   const loadFavoritesFromBackend = async (userId: string) => {
     try {
       const token = localStorage.getItem('authToken')
+<<<<<<< HEAD
       
       if (!token) {
         console.warn('❌ Token não disponível para carregar favoritos')
@@ -557,18 +800,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log(`✅ ${favoritesData.length} favoritos carregados do backend`)
       }
       
+=======
+      if (!token) return
+      
+      const response = await fetch(`${API_BASE_URL}/user-favorites`, {
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      })
+      
+      if (response.status === 401) { clearAuthData(); return }
+      if (!response.ok) return
+      
+      const data = await response.json()
+      if (data.success && Array.isArray(data.data)) {
+        const favoritesData = data.data.map((fav: any) => ({
+          id: fav.id,
+          user_id: fav.user_id,
+          api_id: fav.api_id,
+          created_at: fav.created_at,
+          apis: fav.apis ? {
+            id: fav.apis.id,
+            name: fav.apis.name,
+            description: fav.apis.description,
+            rating: fav.apis.rating || 0,
+            tags: fav.apis.tags || ''
+          } : undefined
+        }))
+        setFavoriteObjects(favoritesData)
+      }
+>>>>>>> 177293388e95409eb7999051c37912bd39abae32
     } catch (error: any) {
       console.error('❌ Erro ao carregar favoritos do backend:', error)
     }
   }
 
   const loadFavorites = async () => {
+<<<<<<< HEAD
     if (!user) {
       console.warn('⚠️ Tentativa de carregar favoritos sem usuário')
       return
     }
     
     console.log('🔄 Recarregando favoritos...')
+=======
+    if (!user) return
+>>>>>>> 177293388e95409eb7999051c37912bd39abae32
     await loadFavoritesFromBackend(user.id)
   }
 
@@ -581,6 +856,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const token = localStorage.getItem('authToken')
+<<<<<<< HEAD
       
       if (!token) {
         alert('Sessão expirada. Faça login novamente.')
@@ -642,6 +918,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw new Error(data.message || 'Erro ao adicionar favorito')
         }
         
+=======
+      if (!token) { clearAuthData(); router.push('/login'); return }
+
+      const isCurrentlyFavorite = favoriteObjects.some(fav => fav.api_id === apiId)
+      
+      if (isCurrentlyFavorite) {
+        const response = await fetch(`${API_BASE_URL}/user-favorites/${apiId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+        })
+        if (response.status === 401) { clearAuthData(); router.push('/login'); return }
+        const data = await response.json()
+        if (!response.ok || !data.success) throw new Error(data.message || 'Erro ao remover favorito')
+        setFavoriteObjects(prev => prev.filter(fav => fav.api_id !== apiId))
+      } else {
+        const response = await fetch(`${API_BASE_URL}/user-favorites`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ api_id: apiId })
+        })
+        if (response.status === 401) { clearAuthData(); router.push('/login'); return }
+        const data = await response.json()
+        if (!response.ok || !data.success) throw new Error(data.message || 'Erro ao adicionar favorito')
+>>>>>>> 177293388e95409eb7999051c37912bd39abae32
         const newFavorite = {
           id: data.data?.id || Date.now().toString(),
           user_id: user.id,
@@ -655,6 +955,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             tags: data.data.apis.tags || ''
           } : undefined
         }
+<<<<<<< HEAD
         
         setFavoriteObjects(prev => [...prev, newFavorite])
         console.log('✅ Favorito adicionado')
@@ -669,12 +970,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         router.push('/login')
       } else {
         alert(error.message || 'Erro ao favoritar/desfavoritar API')
+=======
+        setFavoriteObjects(prev => [...prev, newFavorite])
+      }
+    } catch (error: any) {
+      if (error.message.includes('Token') || error.message.includes('401')) {
+        clearAuthData()
+        router.push('/login')
+>>>>>>> 177293388e95409eb7999051c37912bd39abae32
       }
       throw error
     }
   }
 
   const updateUserData = (userData: Partial<User>) => {
+<<<<<<< HEAD
     if (!user) {
       console.warn('⚠️ Tentativa de atualizar usuário sem usuário logado')
       return
@@ -716,10 +1026,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     
     // Redirecionar para rota do backend
+=======
+    if (!user) return
+    const updatedUser = { ...user, ...userData }
+    setUser(updatedUser)
+    localStorage.setItem('apihub_user', JSON.stringify(updatedUser))
+  }
+
+  const logout = () => {
+    const token = localStorage.getItem('authToken')
+    if (token) {
+      fetch(`${API_BASE_URL}/logout`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      }).catch(console.error)
+    }
+    clearAuthData()
+    router.push('/')
+  }
+
+  const loginWithGoogle = () => {
+    const currentPath = window.location.pathname
+    if (currentPath !== '/login') localStorage.setItem('redirectAfterLogin', currentPath)
+>>>>>>> 177293388e95409eb7999051c37912bd39abae32
     window.location.href = `${API_BASE_URL}/auth/google`
   }
 
   const loginWithGitHub = () => {
+<<<<<<< HEAD
     console.log('🔗 Iniciando login com GitHub...')
     
     // Salvar página atual para redirecionamento após login
@@ -730,6 +1064,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     
     // Redirecionar para rota do backend
+=======
+    const currentPath = window.location.pathname
+    if (currentPath !== '/login') localStorage.setItem('redirectAfterLogin', currentPath)
+>>>>>>> 177293388e95409eb7999051c37912bd39abae32
     window.location.href = `${API_BASE_URL}/auth/github`
   }
 
