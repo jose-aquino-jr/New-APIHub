@@ -1,7 +1,8 @@
-// app/apis/[slug]/page.tsx
+// app/apis/[slug]/page.tsx (06-08-26)
 import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
-import { fetchAPIBySlug, fetchAPIs } from '@/lib/api'
+import { fetchAPIs } from '@/lib/api'
+import { generateSlug } from '@/lib/slug'
 import { APIDetailClient } from '@/components/APIDetailClient'
 import { APIDetailSkeleton } from '@/components/APIDetailSkeleton'
 
@@ -20,14 +21,13 @@ interface PageProps {
 }
 
 async function getAPI(slug: string) {
-  const api = await fetchAPIBySlug(slug)
+  const allApis = await fetchAPIs()   // busca as 43 UMA única vez
+  const api = allApis.find((a: any) => generateSlug(a.name) === slug)
   if (!api) return null
-  
-  // Buscar APIs relacionadas (mesma categoria)
-  const allApis = await fetchAPIs()
+
   const category = api.tags?.split(',')[0]?.trim() || ''
   const related = allApis
-    .filter(a => a.id !== api.id && a.tags?.includes(category))
+    .filter((a: any) => a.id !== api.id && a.tags?.includes(category))
     .slice(0, 4)
   
   return { api, related, category }

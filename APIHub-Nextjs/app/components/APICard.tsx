@@ -1,3 +1,4 @@
+//app/components/APICard.tsx (06-08-26)
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -176,6 +177,7 @@ export function APICard({ api, index, isFavorited, toggleFavorite, user, isAuthe
 
         <Link
           href={`/apis/${generateSlug(api.name)}`}
+          prefetch={false}
           className="btn-primary w-full text-center group-hover:scale-105 transition-transform duration-200 inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg"
         >
           Ver Detalhes
