@@ -492,11 +492,11 @@ export function APIDetailClient({
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="card mb-"
+        className="card mb-8"
       >
         <div className="flex flex-col gap-4">
           {/* LINHA SUPERIOR */}
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex items-center gap-3 flex-wrap">
               <span className={`badge ${getCategoryColor(initialCategory)}`}>
                 {initialCategory}
@@ -516,7 +516,7 @@ export function APIDetailClient({
             </div>
 
             {/* AÇÕES */}
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               {/* FAVORITO */}
               <button
                 onClick={handleFavoriteToggle}
