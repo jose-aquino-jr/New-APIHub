@@ -423,37 +423,37 @@ export function APIDetailClient({
   };
 
   const reportOptions = [
-  {
-    id: "api_offline",
-    label: "⚠️ API Inútil / Fora do ar",
-    reason: "API Inútil / Fora do ar", 
-    description: "API não está funcionando ou retorna erros",
-  },
-  {
-    id: "offensive_content",
-    label: "🚫 Conteúdo Ofensivo",
-    reason: "Conteúdo Ofensivo",
-    description: "Conteúdo impróprio, ofensivo ou inadequado",
-  },
-  {
-    id: "fake_data",
-    label: "❌ Dados Falsos",
-    reason: "Dados Falsos",
-    description: "API retorna informações incorretas ou falsas",
-  },
-  {
-    id: "terms_violation",
-    label: "🛡️ Violação de Termos",
-    reason: "Violação de Termos",
-    description: "API viola nossos termos de serviço",
-  },
-  {
-    id: "other",
-    label: "📝 Outros",
-    reason: "Outros",
-    description: "Outro motivo não listado",
-  },
-]
+    {
+      id: "api_offline",
+      label: "⚠️ API Inútil / Fora do ar",
+      reason: "API Inútil / Fora do ar",
+      description: "API não está funcionando ou retorna erros",
+    },
+    {
+      id: "offensive_content",
+      label: "🚫 Conteúdo Ofensivo",
+      reason: "Conteúdo Ofensivo",
+      description: "Conteúdo impróprio, ofensivo ou inadequado",
+    },
+    {
+      id: "fake_data",
+      label: "❌ Dados Falsos",
+      reason: "Dados Falsos",
+      description: "API retorna informações incorretas ou falsas",
+    },
+    {
+      id: "terms_violation",
+      label: "🛡️ Violação de Termos",
+      reason: "Violação de Termos",
+      description: "API viola nossos termos de serviço",
+    },
+    {
+      id: "other",
+      label: "📝 Outros",
+      reason: "Outros",
+      description: "Outro motivo não listado",
+    },
+  ];
 
   const fullUrl = `${api.base_url}${api.endpoint_path || ""}`;
   const parameters = api.parameters ? parseParameters(api.parameters) : {};
@@ -512,7 +512,7 @@ export function APIDetailClient({
                 </Link>
               ) : (
                 <span className="font-medium text-gray-600">Comunidade</span>
-              )}    
+              )}
             </div>
 
             {/* AÇÕES */}
@@ -574,9 +574,9 @@ export function APIDetailClient({
                           }`}
                           onClick={() => {
                             if (option.id === "other") {
-                              setReportReason("other")
+                              setReportReason("other");
                             } else {
-                              handleReport(option.reason) // ← sem regex, direto e confiável
+                              handleReport(option.reason); // ← sem regex, direto e confiável
                             }
                           }}
                         >
@@ -678,88 +678,88 @@ export function APIDetailClient({
                 </button>
 
                 {showRateMenu && !userHasRated && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  className="absolute right-0 top-full mt-3 w-96 max-w-[calc(100vw-2rem)] bg-white border rounded-2xl shadow-2xl z-50 overflow-hidden"
-                >
-                  <div className="p-4">
-                    {/* Estrelas */}
-                    <div className="flex justify-center gap-1 mb-4">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          onClick={() => setRating(star)}
-                          className="p-2 hover:scale-110 transition-transform"
-                        >
-                          <Star
-                            size={32}
-                            className={`${
-                              star <= rating
-                                ? "fill-yellow-400 text-yellow-400"
-                                : "fill-gray-300 text-gray-300"
-                            }`}
-                          />
-                        </button>
-                      ))}
-                    </div>
-
-                    <div className="text-center mb-4">
-                      <span className="text-lg font-semibold text-gray-900">
-                        {getRatingDescription(rating)}
-                      </span>
-                      <div className="flex items-center justify-center gap-2 mt-1">
-                        {[...Array(rating)].map((_, i) => (
-                          <div
-                            key={i}
-                            className="w-2 h-2 bg-yellow-400 rounded-full"
-                          ></div>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    className="absolute right-0 top-full mt-3 w-96 max-w-[calc(100vw-2rem)] bg-white border rounded-2xl shadow-2xl z-50 overflow-hidden"
+                  >
+                    <div className="p-4">
+                      {/* Estrelas */}
+                      <div className="flex justify-center gap-1 mb-4">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            onClick={() => setRating(star)}
+                            className="p-2 hover:scale-110 transition-transform"
+                          >
+                            <Star
+                              size={32}
+                              className={`${
+                                star <= rating
+                                  ? "fill-yellow-400 text-yellow-400"
+                                  : "fill-gray-300 text-gray-300"
+                              }`}
+                            />
+                          </button>
                         ))}
                       </div>
-                    </div>
 
-                    {/* Comentário */}
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        <MessageSquare className="inline w-4 h-4 mr-1" />
-                        Comentário (opcional)
-                      </label>
-                      <textarea
-                        value={ratingComment}
-                        onChange={(e) => setRatingComment(e.target.value)}
-                        placeholder="Compartilhe sua experiência..."
-                        className="w-full p-3 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        rows={3}
-                      />
-                    </div>
+                      <div className="text-center mb-4">
+                        <span className="text-lg font-semibold text-gray-900">
+                          {getRatingDescription(rating)}
+                        </span>
+                        <div className="flex items-center justify-center gap-2 mt-1">
+                          {[...Array(rating)].map((_, i) => (
+                            <div
+                              key={i}
+                              className="w-2 h-2 bg-yellow-400 rounded-full"
+                            ></div>
+                          ))}
+                        </div>
+                      </div>
 
-                    {/* Botões */}
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => {
-                          setShowRateMenu(false);
-                          setRating(0);
-                          setRatingComment("");
-                        }}
-                        className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        onClick={handleRate}
-                        disabled={rating === 0 || loading}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                      >
-                        {loading ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Send className="w-4 h-4" />
-                        )}
-                        Enviar Avaliação
-                      </button>
+                      {/* Comentário */}
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <MessageSquare className="inline w-4 h-4 mr-1" />
+                          Comentário (opcional)
+                        </label>
+                        <textarea
+                          value={ratingComment}
+                          onChange={(e) => setRatingComment(e.target.value)}
+                          placeholder="Compartilhe sua experiência..."
+                          className="w-full p-3 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          rows={3}
+                        />
+                      </div>
+
+                      {/* Botões */}
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => {
+                            setShowRateMenu(false);
+                            setRating(0);
+                            setRatingComment("");
+                          }}
+                          className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          onClick={handleRate}
+                          disabled={rating === 0 || loading}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        >
+                          {loading ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Send className="w-4 h-4" />
+                          )}
+                          Enviar Avaliação
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
+                  </motion.div>
                 )}
               </div>
 
@@ -789,8 +789,10 @@ export function APIDetailClient({
           </div>
 
           {/* TÍTULO + ESTRELAS */}
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold text-gray-900">{api.name}</h1>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="min-w-0 break-words text-2xl sm:text-3xl font-bold text-gray-900">
+              {api.name}
+            </h1>
             <div className="flex items-center gap-1">
               {[1, 2, 3, 4, 5].map((i) => (
                 <Star
